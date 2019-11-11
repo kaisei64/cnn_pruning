@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class Pruning:
+class DenseMaskGenerator:
     def __init__(self):
         self.prune_ratio = 0
         self.mask = None
