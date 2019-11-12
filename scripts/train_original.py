@@ -45,7 +45,7 @@ test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
 net = models.alexnet(num_classes=10).to(device)
 optimizer = optim.SGD(net.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
 criterion = nn.CrossEntropyLoss()
-num_epochs = 15
+num_epochs = 30
 
 for epoch in range(num_epochs):
     train_loss = 0

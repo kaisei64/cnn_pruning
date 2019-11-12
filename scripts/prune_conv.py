@@ -5,7 +5,6 @@ pardir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(pardir)
 
 from channel_mask_generator import ChannelMaskGenerator
-# from dense_mask_generator import DenseMaskGenerator
 
 import torch
 import torchvision
@@ -62,7 +61,6 @@ pruning_acc = 100
 count = 1
 k = 1
 conv_count = 0
-channel_num_new = []
 
 # マスクのオブジェクト
 ch_mask = []
@@ -82,6 +80,11 @@ weight_ratio = []
 for i in range(conv_count):
     weight_ratio.append(100)
 
+# 枝刈り後のチャネル数
+channel_num_new = []
+for i in range(conv_count):
+    channel_num_new.append(0)
+
 # ノルムの合計を保持
 pw_wlist = []
 for i in range(conv_count):
@@ -100,13 +103,12 @@ with torch.no_grad():
 
 # 枝刈りの割合
 pw_idx = []
-for i, param in enumerate(conv_out):
+for param in conv_out:
     pw_idx.append(param / 20)
 
 # 全結合パラメータの凍結
-for i, param in enumerate(new_net.parameters()):
-    if i >= 10:
-        param.requires_grad = False
+for param in new_net.classifier.parameters():
+    param.requires_grad = False
 
 # channel_pruning
 while weight_ratio[0] > 0.01 and count < 5 and pruning_acc > original_acc * 0.01:
@@ -139,7 +141,6 @@ while weight_ratio[0] > 0.01 and count < 5 and pruning_acc > original_acc * 0.01
             pw_ratio[i] = pw_sort[i][int(pw_idx[i] * k)]
         elif i != 0:
             pw_ratio[i] = pw_sort[i][int(pw_idx[i] * k) - 1]
-
     k = k + 1
 
     # 枝刈り本体
@@ -171,28 +172,26 @@ while weight_ratio[0] > 0.01 and count < 5 and pruning_acc > original_acc * 0.01
             torch.t(new_net.classifier[1].weight.data.clone())), device=device, dtype=dtype)
 
     print()
-    print("first pruning:", count)
+    print(f'channel pruning: {count}')
     count += 1
-    cnt = 0
-
-    with torch.no_grad():
-        cnt2 = 0
-        for param in new_net.features:
-            if isinstance(param, nn.Conv2d):
-                weight_ratio[cnt] = np.count_nonzero(param.weight.cpu().numpy()) / np.size(param.weight.cpu().numpy())
-                cnt2 += 1
 
     with torch.no_grad():
         cnt = 0
         for param in new_net.features:
             if isinstance(param, nn.Conv2d):
-                channel_num_new.append(conv_out[cnt] - ch_mask[cnt].channel_number(param.weight))
+                weight_ratio[cnt] = np.count_nonzero(param.weight.cpu().numpy()) / np.size(param.weight.cpu().numpy())
                 cnt += 1
-    print("weight_ratio_w1:", weight_ratio[0], " weight_ratio_w2:", weight_ratio[1], " weight_ratio_w3:",
-          weight_ratio[2])
-    print(" weight_ratio_w4", weight_ratio[3], " weight_ratio_w5:", weight_ratio[4])
-    print("channel_number1:", channel_num_new[0], "channel_number2:", channel_num_new[1], "channel_number3:",
-          channel_num_new[2], "channel_number4:", channel_num_new[3], "channel_number5:", channel_num_new[4])
+
+    with torch.no_grad():
+        cnt = 0
+        for param in new_net.features:
+            if isinstance(param, nn.Conv2d):
+                channel_num_new[cnt] = conv_out[cnt] - ch_mask[cnt].channel_number(param.weight)
+                cnt += 1
+    print(f'conv1_param: {weight_ratio[0]}, conv2_param: {weight_ratio[1]}, conv3_param: {weight_ratio[2]}')
+    print(f'conv4_param: {weight_ratio[3]}, conv5_param: {weight_ratio[4]}')
+    print(f'channel_number1: {channel_num_new[0]}, channel_number2: {channel_num_new[1]}, channel_number3: '
+          f'{channel_num_new[2]}, channel_number4: {channel_num_new[3]}, channel_number5: {channel_num_new[4]}')
 
     f_num_epochs = 3
     # finetune
@@ -244,3 +243,7 @@ while weight_ratio[0] > 0.01 and count < 5 and pruning_acc > original_acc * 0.01
 
     print("end", np.count_nonzero(new_net.features[0].weight.data.cpu().numpy()))
     print("end_mask", np.count_nonzero(ch_mask[0].mask))
+
+# パラメータの保存
+# with open('CIFAR10_conv_prune.pkl', 'wb') as f:
+#     cloudpickle.dump(new_net, f)
