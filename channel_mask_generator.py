@@ -31,12 +31,6 @@ class ChannelMaskGenerator:
                 l_mask[i] = 0
         return l_mask.T
 
-    def backward(self, dout):
-        return dout * self.mask
-
-    def get_mask(self):
-        return self.mask
-
     def channel_number(self, x):
         self.count = 0
         sub_x = x.cpu().numpy()

@@ -12,9 +12,3 @@ class DenseMaskGenerator:
         self.mask = np.ones(sub_x.shape)
         self.mask = np.where(np.abs(sub_x) < self.prune_ratio, 0, 1)
         return self.mask
-
-    def backward(self, dout):
-        return dout * self.mask
-
-    def get_mask(self):
-        return self.mask
