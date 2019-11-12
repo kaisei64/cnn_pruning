@@ -126,10 +126,6 @@ while weight_ratio[0] > 0.01 and count < 5 and pruning_acc > original_acc * 0.05
                 pw_wlist[cnt] = np.reshape(torch.abs(param.weight.data.clone()).cpu().numpy(),
                                            (1, dense_in[cnt] * dense_out[cnt])).squeeze()
                 cnt += 1
-    # pw6_wlist = np.reshape(torch.abs(new_net.fc1.weight.data.clone()).cpu().numpy(), (1, new_net.fc1.in_features *
-    #                                                                                   new_net.fc1.out_features)).squeeze()
-    # pw7_wlist = np.reshape(torch.abs(new_net.fc2.weight.data.clone()).cpu().numpy(), (1, new_net.fc2.in_features
-    #                                                                                   * new_net.fc2.out_features)).squeeze()
 
     # 昇順にソート
     pw_sort = []
@@ -154,12 +150,6 @@ while weight_ratio[0] > 0.01 and count < 5 and pruning_acc > original_acc * 0.05
                 param.weight *= torch.tensor(de_mask[cnt].generate_mask(param.weight.data.clone(), pw_ratio[cnt])
                                              , device=device, dtype=dtype)
                 cnt += 1
-        # new_net.classifier[0].weight *= torch.tensor(
-        #     de_mask[0].generate_mask(new_net.features[0].weight.data.clone(), pw_ratio[0]), device=device, dtype=dtype)
-        # new_net.classifier[1].weight *= torch.tensor(
-        #     de_mask[1].generate_mask(new_net.features[1].weight.data.clone(), pw_ratio[0]), device=device, dtype=dtype)
-        # new_net.classifier[2].weight *= torch.tensor(
-        #     de_mask[2].generate_mask(new_net.features[2].weight.data.clone(), pw_ratio[0]), device=device, dtype=dtype)
 
     print()
     print(f'weight pruning: {count}')
