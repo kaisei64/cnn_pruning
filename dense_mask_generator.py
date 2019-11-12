@@ -22,8 +22,7 @@ class DenseMaskGenerator:
     #         if np.all(self.mask[i] == 0):
     #             for k, l in enumerate(mask):
     #                 mask[k][i] = 0
-    #     t_mask = torch.tensor(mask, device=device, dtype=dtype)
-    #     return mask, torch.t(x * t_mask)
+    #     return mask
 
     # def get_bias_mask(self):
     #     self.bias_mask = np.ones(self.mask.shape[1])
