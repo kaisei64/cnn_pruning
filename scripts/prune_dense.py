@@ -56,12 +56,6 @@ while count < 20:
     with torch.no_grad():
         pw_wlist = [np.reshape(torch.abs(dense.weight.data.clone()).cpu().numpy(),
                                (1, dense_in[i] * dense_out[i])).squeeze() for i, dense in enumerate(dense_list)]
-        # cnt = 0
-        # for param in new_net.classifier:
-        #     if isinstance(param, nn.Linear):
-        #         pw_wlist[cnt] = np.reshape(torch.abs(param.weight.data.clone()).cpu().numpy(),
-        #                                    (1, dense_in[cnt] * dense_out[cnt])).squeeze()
-        #         cnt += 1
 
     # 昇順にソート
     for i in range(len(pw_wlist)):
@@ -93,6 +87,11 @@ while count < 20:
               f', dense3_param: {weight_ratio[2]:.4f}')
     print(f'neuron_number1: {neuron_num_new[0]}, neuron_number2: {neuron_num_new[1]}, neuron_number3: '
           f'{neuron_num_new[2]}')
+
+    with torch.no_grad():
+        for layer in new_net.classifier:
+            if isinstance(layer, nn.Linear):
+                np.count_nonzero(layer.weight.cpu().numpy())
 
     f_num_epochs = 3
     # finetune
