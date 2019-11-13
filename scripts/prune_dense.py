@@ -112,7 +112,7 @@ for param in new_net.features.parameters():
     param.requires_grad = False
 
 # weight_pruning
-while weight_ratio[0] > 0.01 and count < 5 and pruning_acc > original_acc * 0.05:
+while weight_ratio[0] > 0.01 and count < 20 and pruning_acc > original_acc * 0.05:
     # if count == 1 or count == 10 or count == 18:
     #     mydraw([torch.t(new_net.fc1.weight.data).cpu().numpy(), torch.t(new_net.fc2.weight.data).cpu().numpy()])
     for i in range(len(pw_wlist)):
@@ -173,7 +173,7 @@ while weight_ratio[0] > 0.01 and count < 5 and pruning_acc > original_acc * 0.05
     print(f'neuron_number1: {neuron_num_new[0]}, neuron_number2: {neuron_num_new[1]}, neuron_number3: '
           f'{neuron_num_new[2]}')
 
-    f_num_epochs = 5
+    f_num_epochs = 10
     # finetune
     for epoch in range(f_num_epochs):
         train_loss = 0

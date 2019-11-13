@@ -5,6 +5,7 @@ pardir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(pardir)
 
 from channel_mask_generator import ChannelMaskGenerator
+from dataset import *
 
 import torch
 import torchvision
@@ -17,50 +18,49 @@ import cloudpickle
 device = 'cuda'
 dtype = torch.float
 
-# データの前処理
-transform_train = transforms.Compose([
-    transforms.Resize(224),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
-
-transform_test = transforms.Compose([
-    transforms.Resize(224),
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
-# データの読み込み
-train_dataset = torchvision.datasets.CIFAR10(root='./data/',
-                                             train=True,
-                                             transform=transform_train,
-                                             download=True)
-test_dataset = torchvision.datasets.CIFAR10(root='./data/',
-                                            train=False,
-                                            transform=transform_test,
-                                            download=True)
-
-train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-                                           batch_size=64,
-                                           shuffle=True,
-                                           num_workers=2)
-test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
-                                          batch_size=64,
-                                          shuffle=False,
-                                          num_workers=2)
+# # データの前処理
+# transform_train = transforms.Compose([
+#     transforms.Resize(224),
+#     transforms.RandomHorizontalFlip(),
+#     transforms.ToTensor(),
+#     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+# ])
+#
+# transform_test = transforms.Compose([
+#     transforms.Resize(224),
+#     transforms.ToTensor(),
+#     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+# ])
+# # データの読み込み
+# train_dataset = torchvision.datasets.CIFAR10(root='./data/',
+#                                              train=True,
+#                                              transform=transform_train,
+#                                              download=True)
+# test_dataset = torchvision.datasets.CIFAR10(root='./data/',
+#                                             train=False,
+#                                             transform=transform_test,
+#                                             download=True)
+#
+# train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
+#                                            batch_size=64,
+#                                            shuffle=True,
+#                                            num_workers=2)
+# test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
+#                                           batch_size=64,
+#                                           shuffle=False,
+#                                           num_workers=2)
 
 # パラメータ利用
 with open('CIFAR10_original_train.pkl', 'rb') as f:
     new_net = cloudpickle.load(f)
 
-optimizer1 = optim.SGD(new_net.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
+optimizer = optim.SGD(new_net.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
 criterion = nn.CrossEntropyLoss()
 
 original_acc = 0
 pruning_acc = 100
 count = 1
 k = 1
-conv_count = 0
 
 # マスクのオブジェクト
 ch_mask = []
@@ -69,37 +69,26 @@ with torch.no_grad():
         if isinstance(new_net.features[i], nn.Conv2d):
             ch_mask.append(ChannelMaskGenerator())
 
+conv_list = list()
+for i in range(len(new_net.features)):
+    if isinstance(new_net.features[i], nn.Conv2d):
+        conv_list.append(new_net.features[i])
+
+print(conv_list)
+
 # 畳み込み層の数を計算
-with torch.no_grad():
-    for i in range(len(new_net.features)):
-        if isinstance(new_net.features[i], nn.Conv2d):
-            conv_count += 1
+conv_count = len(conv_list)
 
 # パラメータの割合
-weight_ratio = []
-for i in range(conv_count):
-    weight_ratio.append(100)
-
-# 枝刈り後のチャネル数
-channel_num_new = []
-for i in range(conv_count):
-    channel_num_new.append(0)
-
-# ノルムの合計を保持
-pw_wlist = []
-for i in range(conv_count):
-    pw_wlist.append([])
+weight_ratio = [100 for _ in range(conv_count)]
 
 # 畳み込み層の入出力数
 conv_in = []
 conv_out = []
 with torch.no_grad():
-    for i in range(len(new_net.features)):
-        if isinstance(new_net.features[i], nn.Conv2d):
-            conv_in.append(new_net.features[i].in_channels)
-    for i in range(len(new_net.features)):
-        if isinstance(new_net.features[i], nn.Conv2d):
-            conv_out.append(new_net.features[i].out_channels)
+    for conv in conv_list:
+        conv_in.append(conv.in_channels)
+        conv_in.append(conv.out_channels)
 
 # 枝刈りの割合
 pw_idx = []
@@ -112,25 +101,22 @@ for param in new_net.classifier.parameters():
 
 # channel_pruning
 while weight_ratio[0] > 0.01 and count < 5 and pruning_acc > original_acc * 0.01:
-    for i in range(len(pw_wlist)):
-        pw_wlist[i].clear()
+    # ノルムの合計を保持
+    pw_wlist = [list() for _ in range(conv_count)]
 
     # ノルムの取得
     with torch.no_grad():
         cnt = 0
-        for param in new_net.features:
-            if isinstance(param, nn.Conv2d):
-                for i in range(len(param.weight)):
-                    tmp = np.sum(torch.abs(param.weight[i]).cpu().numpy())
+        for layer in new_net.features:
+            if isinstance(layer, nn.Conv2d):
+                for i in range(len(layer.weight)):
+                    tmp = np.sum(torch.abs(layer.weight[i]).cpu().numpy())
                     pw_wlist[cnt].append(tmp)
                 cnt += 1
 
     # 昇順にソート
-    pw_sort = []
-    for i in range(len(pw_idx)):
-        pw_sort.append([])
-    for i in range(len(pw_idx)):
-        pw_sort[i] = np.sort(pw_wlist[i], False)
+    for i in range(len(pw_wlist)):
+        pw_wlist[i].sort()
 
     # 刈る基準の閾値を格納
     pw_ratio = []
@@ -138,33 +124,38 @@ while weight_ratio[0] > 0.01 and count < 5 and pruning_acc > original_acc * 0.01
         pw_ratio.append([])
     for i in range(len(pw_ratio)):
         if i == 0:
-            pw_ratio[i] = pw_sort[i][int(pw_idx[i] * k)]
+            pw_ratio[i] = pw_wlist[i][int(pw_idx[i] * k)]
         elif i != 0:
-            pw_ratio[i] = pw_sort[i][int(pw_idx[i] * k) - 1]
-    k = k + 1
+            pw_ratio[i] = pw_wlist[i][int(pw_idx[i] * k) - 1]
+    k += 1
 
     # 枝刈り本体
     with torch.no_grad():
-        new_net.features[0].weight.data *= torch.tensor(
-            ch_mask[0].generate_mask(new_net.features[0].weight.data.clone(),
-                                     None,
-                                     pw_ratio[0]), device=device, dtype=dtype)
-        new_net.features[3].weight.data *= torch.tensor(
-            ch_mask[1].generate_mask(new_net.features[3].weight.data.clone(),
-                                     new_net.features[0].weight.data.clone(),
-                                     pw_ratio[1]), device=device, dtype=dtype)
-        new_net.features[6].weight.data *= torch.tensor(
-            ch_mask[2].generate_mask(new_net.features[6].weight.data.clone(),
-                                     new_net.features[3].weight.data.clone(),
-                                     pw_ratio[2]), device=device, dtype=dtype)
-        new_net.features[8].weight.data *= torch.tensor(
-            ch_mask[3].generate_mask(new_net.features[8].weight.data.clone(),
-                                     new_net.features[6].weight.data.clone(),
-                                     pw_ratio[3]), device=device, dtype=dtype)
-        new_net.features[10].weight.data *= torch.tensor(
-            ch_mask[4].generate_mask(new_net.features[10].weight.data.clone(),
-                                     new_net.features[8].weight.data.clone(),
-                                     pw_ratio[4]), device=device, dtype=dtype)
+        for i in range(len(conv_list)):
+            conv_list[i].weight.data *= torch.tensor(ch_mask[i].generate_mask(conv_list[i].weight.data.clone(),
+                                                                              None if i == 0 else conv_list[i - 1].weight.data.clone(),
+                                                                              pw_ratio[i]), device=device, dtype=dtype)
+
+        # new_net.features[0].weight.data *= torch.tensor(
+        #     ch_mask[0].generate_mask(new_net.features[0].weight.data.clone(),
+        #                              None,
+        #                              pw_ratio[0]), device=device, dtype=dtype)
+        # new_net.features[3].weight.data *= torch.tensor(
+        #     ch_mask[1].generate_mask(new_net.features[3].weight.data.clone(),
+        #                              new_net.features[0].weight.data.clone(),
+        #                              pw_ratio[1]), device=device, dtype=dtype)
+        # new_net.features[6].weight.data *= torch.tensor(
+        #     ch_mask[2].generate_mask(new_net.features[6].weight.data.clone(),
+        #                              new_net.features[3].weight.data.clone(),
+        #                              pw_ratio[2]), device=device, dtype=dtype)
+        # new_net.features[8].weight.data *= torch.tensor(
+        #     ch_mask[3].generate_mask(new_net.features[8].weight.data.clone(),
+        #                              new_net.features[6].weight.data.clone(),
+        #                              pw_ratio[3]), device=device, dtype=dtype)
+        # new_net.features[10].weight.data *= torch.tensor(
+        #     ch_mask[4].generate_mask(new_net.features[10].weight.data.clone(),
+        #                              new_net.features[8].weight.data.clone(),
+        #                              pw_ratio[4]), device=device, dtype=dtype)
         # linear1_mask = torch.tensor(p5.linear_mask(torch.t(new_net.fc1.weight.data.clone())), device=device,
         #                             dtype=dtype)
         new_net.classifier[1].weight.data = torch.tensor(new_net.classifier[1].weight.data.clone().cpu().numpy()
@@ -176,17 +167,23 @@ while weight_ratio[0] > 0.01 and count < 5 and pruning_acc > original_acc * 0.01
     count += 1
 
     with torch.no_grad():
-        cnt = 0
-        for param in new_net.features:
-            if isinstance(param, nn.Conv2d):
-                weight_ratio[cnt] = np.count_nonzero(param.weight.cpu().numpy()) / np.size(param.weight.cpu().numpy())
-                cnt += 1
+        for i, conv in enumerate(conv_list):
+            weight_ratio[i] = np.count_nonzero(conv.weight.cpu().numpy()) / np.size(conv.weight.cpu().numpy())
+        # for param in new_net.features:
+        #     if isinstance(param, nn.Conv2d):
+        #         weight_ratio[cnt] = np.count_nonzero(param.weight.cpu().numpy()) / np.size(param.weight.cpu().numpy())
+        #         cnt += 1
+
+    # 枝刈り後のチャネル数
+    channel_num_new = []
+    for i in range(conv_count):
+        channel_num_new.append(0)
 
     with torch.no_grad():
         cnt = 0
-        for param in new_net.features:
-            if isinstance(param, nn.Conv2d):
-                channel_num_new[cnt] = conv_out[cnt] - ch_mask[cnt].channel_number(param.weight)
+        for layer in new_net.features:
+            if isinstance(layer, nn.Conv2d):
+                channel_num_new[cnt] = conv_out[cnt] - ch_mask[cnt].channel_number(layer.weight)
                 cnt += 1
     print(f'conv1_param: {weight_ratio[0]}, conv2_param: {weight_ratio[1]}, conv3_param: {weight_ratio[2]}')
     print(f'conv4_param: {weight_ratio[3]}, conv5_param: {weight_ratio[4]}')
@@ -209,13 +206,13 @@ while weight_ratio[0] > 0.01 and count < 5 and pruning_acc > original_acc * 0.01
             # view()での変換をしない
             images, labels = images.to(device), labels.to(device)
 
-            optimizer1.zero_grad()
+            optimizer.zero_grad()
             outputs = new_net(images)
             loss = criterion(outputs, labels)
             train_loss += loss.item()
             train_acc += (outputs.max(1)[1] == labels).sum().item()
             loss.backward()
-            optimizer1.step()
+            optimizer.step()
             if epoch == 0 and i == 0:
                 print("train", np.count_nonzero(new_net.features[0].weight.data.cpu().numpy()))
                 print("train_grad", np.count_nonzero(new_net.features[0].weight.grad.cpu().numpy()))
