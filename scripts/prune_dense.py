@@ -35,17 +35,12 @@ dense_list = [new_net.classifier[i] for i in range(len(new_net.classifier)) if
 dense_count = len(dense_list)
 
 # マスクのオブジェクト
-# de_mask = []
 with torch.no_grad():
     de_mask = [DenseMaskGenerator() for _ in dense_list]
 
 # 全結合層の入出力数
 dense_in = [dense.in_features for dense in dense_list]
 dense_out = [dense.out_features for dense in dense_list]
-
-# 畳み込みパラメータの凍結
-for param in new_net.features.parameters():
-    param.requires_grad = False
 
 # 全結合パラメータの凍結
 for param in new_net.features.parameters():
@@ -56,12 +51,6 @@ count = 1
 while count < 20:
     # if count == 1 or count == 10 or count == 18:
     #     mydraw([torch.t(new_net.fc1.weight.data).cpu().numpy(), torch.t(new_net.fc2.weight.data).cpu().numpy()])
-
-    # 重みの１次元ベクトルを保持
-    # pw_wlist = [list() for _ in range(dense_count)]
-
-    # for i in range(len(pw_wlist)):
-    #     pw_wlist[i] = []
 
     # 重みを１次元ベクトル化
     with torch.no_grad():
@@ -79,18 +68,13 @@ while count < 20:
         pw_wlist[i].sort()
 
     # 刈る基準の閾値を格納
-    pw_ratio = [pw_wlist[i][int(dense_out[i] / 20 * count)] for i in range(len(dense_out))]
-    # pw_ratio = []
-    # for i in range(len(pw_idx)):
-    #     pw_ratio.append([])
-    # for i in range(len(pw_ratio)):
-    #     pw_ratio[i] = pw_sort[i][int(pw_idx[i] * k) - 1]
+    pw_ratio = [pw_wlist[i][int(dense_in[i] * dense_out[i] / 20 * count)] for i in range(len(dense_out))]
 
     # 枝刈り本体
     with torch.no_grad():
         for i, dense in enumerate(dense_list):
-            dense.weight *= torch.tensor(de_mask[i].generate_mask(dense.weight.data.clone(), pw_ratio[i])
-                                         , device=device, dtype=dtype)
+            dense.weight.data *= torch.tensor(de_mask[i].generate_mask(dense.weight.data.clone(), pw_ratio[i])
+                                              , device=device, dtype=dtype)
 
     print()
     print(f'weight pruning: {count}')
@@ -101,9 +85,9 @@ while count < 20:
         weight_ratio = [np.count_nonzero(dense.weight.cpu().numpy()) / np.size(dense.weight.cpu().numpy()) for dense in
                         dense_list]
 
-    # 枝刈り後のチャネル数
+    # 枝刈り後のニューロン数
     with torch.no_grad():
-        neuron_num_new = [dense_out[i] - de_mask[i].neuron_number(dense.weight) for i, dense in enumerate(dense_list)]
+        neuron_num_new = [dense_in[i] - de_mask[i].neuron_number(torch.t(dense.weight)) for i, dense in enumerate(dense_list)]
 
         print(f'dense1_param: {weight_ratio[0]:.4f}, dense2_param: {weight_ratio[1]:.4f}'
               f', dense3_param: {weight_ratio[2]:.4f}')

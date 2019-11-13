@@ -11,11 +11,10 @@ class DenseMaskGenerator:
     def generate_mask(self, x, prune_ratio):
         self.prune_ratio = prune_ratio
         sub_x = x.cpu().numpy()
-        self.mask = np.ones(sub_x.shape)
         self.mask = np.where(np.abs(sub_x) < self.prune_ratio, 0, 1)
         return self.mask
 
-    # 2層目の枝刈りに付随して消える1層目の枝を消す
+    # 次層の枝刈りに付随して消える前層の枝を消す(ニューロンプルーニングのとき)
     # def new_mask(self, x, y, premask):
     #     mask = premask
     #     for i, j in enumerate(y):
@@ -38,6 +37,6 @@ class DenseMaskGenerator:
     def neuron_number(self, x):
         self.count = 0
         for i, j in enumerate(x):
-            if np.all(self.mask[i] == 0):
+            if np.all(self.mask.T[i] == 0):
                 self.count += 1
         return self.count
