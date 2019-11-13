@@ -26,7 +26,6 @@ optimizer = optim.SGD(new_net.parameters(), lr=0.01, momentum=0.9, weight_decay=
 
 original_acc = 0
 pruning_acc = 100
-count = 1
 
 # 全結合層のリスト
 dense_list = [new_net.classifier[i] for i in range(len(new_net.classifier)) if
@@ -48,26 +47,12 @@ dense_out = [dense.out_features for dense in dense_list]
 for param in new_net.features.parameters():
     param.requires_grad = False
 
-# # パラメータの割合
-# weight_ratio = []
-# for i in range(dense_count):
-#     weight_ratio.append(100)
-#
-# # 枝刈り後のニューロン数
-# neuron_num_new = []
-# for i in range(dense_count):
-#     neuron_num_new.append(0)
-
-# 枝刈りの割合
-pw_idx = []
-for param_in, param_out in zip(dense_in, dense_out):
-    pw_idx.append(param_in * param_out / 20)
-
 # 全結合パラメータの凍結
 for param in new_net.features.parameters():
     param.requires_grad = False
 
 # weight_pruning
+count = 1
 while count < 20:
     # if count == 1 or count == 10 or count == 18:
     #     mydraw([torch.t(new_net.fc1.weight.data).cpu().numpy(), torch.t(new_net.fc2.weight.data).cpu().numpy()])
@@ -92,11 +77,6 @@ while count < 20:
     # 昇順にソート
     for i in range(len(pw_wlist)):
         pw_wlist[i].sort()
-    # pw_sort = []
-    # for i in range(len(pw_idx)):
-    #     pw_sort.append([])
-    # for i in range(len(pw_idx)):
-    #     pw_sort[i] = np.sort(pw_wlist[i], False)
 
     # 刈る基準の閾値を格納
     pw_ratio = [pw_wlist[i][int(dense_out[i] / 20 * count)] for i in range(len(dense_out))]
@@ -108,36 +88,29 @@ while count < 20:
 
     # 枝刈り本体
     with torch.no_grad():
-        cnt = 0
-        for param in new_net.classifier:
-            if isinstance(param, nn.Linear):
-                param.weight *= torch.tensor(de_mask[cnt].generate_mask(param.weight.data.clone(), pw_ratio[cnt])
-                                             , device=device, dtype=dtype)
-                cnt += 1
+        for i, dense in enumerate(dense_list):
+            dense.weight *= torch.tensor(de_mask[i].generate_mask(dense.weight.data.clone(), pw_ratio[i])
+                                         , device=device, dtype=dtype)
 
     print()
     print(f'weight pruning: {count}')
     count += 1
 
+    # パラメータの割合
     with torch.no_grad():
-        cnt = 0
-        for param in new_net.classifier:
-            if isinstance(param, nn.Linear):
-                weight_ratio[cnt] = np.count_nonzero(param.weight.cpu().numpy()) / np.size(param.weight.cpu().numpy())
-                cnt += 1
+        weight_ratio = [np.count_nonzero(dense.weight.cpu().numpy()) / np.size(dense.weight.cpu().numpy()) for dense in
+                        dense_list]
 
+    # 枝刈り後のチャネル数
     with torch.no_grad():
-        cnt = 0
-        for param in new_net.classifier:
-            if isinstance(param, nn.Linear):
-                neuron_num_new[cnt] = dense_out[cnt] - de_mask[cnt].neuron_number(param.weight)
-                cnt += 1
-    print(f'dense1_param: {weight_ratio[0]:.4f}, dense2_param: {weight_ratio[1]:.4f}'
-          f', dense3_param: {weight_ratio[2]:.4f}')
+        neuron_num_new = [dense_out[i] - de_mask[i].neuron_number(dense.weight) for i, dense in enumerate(dense_list)]
+
+        print(f'dense1_param: {weight_ratio[0]:.4f}, dense2_param: {weight_ratio[1]:.4f}'
+              f', dense3_param: {weight_ratio[2]:.4f}')
     print(f'neuron_number1: {neuron_num_new[0]}, neuron_number2: {neuron_num_new[1]}, neuron_number3: '
           f'{neuron_num_new[2]}')
 
-    f_num_epochs = 10
+    f_num_epochs = 3
     # finetune
     for epoch in range(f_num_epochs):
         train_loss = 0
