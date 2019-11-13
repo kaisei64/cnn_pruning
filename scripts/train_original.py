@@ -1,51 +1,19 @@
+import os
+import sys
+
+pardir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(pardir)
+
+from dataset import *
+
 import torch
-import torchvision
 import torchvision.models as models
-import torch.nn as nn
 import torch.optim as optim
-import torchvision.transforms as transforms
-import numpy as np
 import cloudpickle
-
-device = 'cuda'
-dtype = torch.float
-
-# データの前処理
-transform_train = transforms.Compose([
-    transforms.Resize(224),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
-
-transform_test = transforms.Compose([
-    transforms.Resize(224),
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
-# データの読み込み
-train_dataset = torchvision.datasets.CIFAR10(root='./data/',
-                                             train=True,
-                                             transform=transform_train,
-                                             download=True)
-test_dataset = torchvision.datasets.CIFAR10(root='./data/',
-                                            train=False,
-                                            transform=transform_test,
-                                            download=True)
-
-train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-                                           batch_size=64,
-                                           shuffle=True,
-                                           num_workers=2)
-test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
-                                          batch_size=64,
-                                          shuffle=False,
-                                          num_workers=2)
 
 net = models.alexnet(num_classes=10).to(device)
 optimizer = optim.SGD(net.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
-criterion = nn.CrossEntropyLoss()
-num_epochs = 30
+num_epochs = 15
 
 for epoch in range(num_epochs):
     train_loss = 0

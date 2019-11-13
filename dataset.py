@@ -1,6 +1,12 @@
 import torch
+import torch.nn
 import torchvision
 import torchvision.transforms as transforms
+
+device = 'cuda'
+dtype = torch.float
+criterion = nn.CrossEntropyLoss()
+
 
 # データの前処理
 transform_train = transforms.Compose([

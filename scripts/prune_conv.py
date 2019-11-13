@@ -8,111 +8,50 @@ from channel_mask_generator import ChannelMaskGenerator
 from dataset import *
 
 import torch
-import torchvision
 import torch.nn as nn
 import torch.optim as optim
-import torchvision.transforms as transforms
 import numpy as np
 import cloudpickle
-
-device = 'cuda'
-dtype = torch.float
-
-# # データの前処理
-# transform_train = transforms.Compose([
-#     transforms.Resize(224),
-#     transforms.RandomHorizontalFlip(),
-#     transforms.ToTensor(),
-#     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-# ])
-#
-# transform_test = transforms.Compose([
-#     transforms.Resize(224),
-#     transforms.ToTensor(),
-#     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-# ])
-# # データの読み込み
-# train_dataset = torchvision.datasets.CIFAR10(root='./data/',
-#                                              train=True,
-#                                              transform=transform_train,
-#                                              download=True)
-# test_dataset = torchvision.datasets.CIFAR10(root='./data/',
-#                                             train=False,
-#                                             transform=transform_test,
-#                                             download=True)
-#
-# train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-#                                            batch_size=64,
-#                                            shuffle=True,
-#                                            num_workers=2)
-# test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
-#                                           batch_size=64,
-#                                           shuffle=False,
-#                                           num_workers=2)
 
 # パラメータ利用
 with open('CIFAR10_original_train.pkl', 'rb') as f:
     new_net = cloudpickle.load(f)
 
 optimizer = optim.SGD(new_net.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
-criterion = nn.CrossEntropyLoss()
 
-original_acc = 0
-pruning_acc = 100
-count = 1
-k = 1
 
-# マスクのオブジェクト
-ch_mask = []
-with torch.no_grad():
-    for i in range(len(new_net.features)):
-        if isinstance(new_net.features[i], nn.Conv2d):
-            ch_mask.append(ChannelMaskGenerator())
-
-conv_list = list()
-for i in range(len(new_net.features)):
-    if isinstance(new_net.features[i], nn.Conv2d):
-        conv_list.append(new_net.features[i])
-
-print(conv_list)
+# 畳み込み層のリスト
+conv_list = [new_net.features[i] for i in range(len(new_net.features)) if isinstance(new_net.features[i], nn.Conv2d)]
 
 # 畳み込み層の数を計算
 conv_count = len(conv_list)
 
-# パラメータの割合
-weight_ratio = [100 for _ in range(conv_count)]
+# マスクのオブジェクト
+with torch.no_grad():
+    ch_mask = [ChannelMaskGenerator() for _ in range(conv_count)]
+
 
 # 畳み込み層の入出力数
-conv_in = []
-conv_out = []
-with torch.no_grad():
-    for conv in conv_list:
-        conv_in.append(conv.in_channels)
-        conv_in.append(conv.out_channels)
-
-# 枝刈りの割合
-pw_idx = []
-for param in conv_out:
-    pw_idx.append(param / 20)
+conv_in = [conv.in_channels for conv in conv_list]
+conv_out = [conv.out_channels for conv in conv_list]
 
 # 全結合パラメータの凍結
 for param in new_net.classifier.parameters():
     param.requires_grad = False
 
 # channel_pruning
-while weight_ratio[0] > 0.01 and count < 5 and pruning_acc > original_acc * 0.01:
+count = 1
+while count < 5:
     # ノルムの合計を保持
     pw_wlist = [list() for _ in range(conv_count)]
 
     # ノルムの取得
     with torch.no_grad():
-        cnt = 0
-        for layer in new_net.features:
-            if isinstance(layer, nn.Conv2d):
-                for i in range(len(layer.weight)):
-                    tmp = np.sum(torch.abs(layer.weight[i]).cpu().numpy())
-                    pw_wlist[cnt].append(tmp)
-                cnt += 1
+        for i, conv in enumerate(conv_list):
+            for param in conv.weight:
+                tmp = np.sum(torch.abs(param).cpu().numpy())
+                pw_wlist[i].append(tmp)
+        print(pw_wlist)
 
     # 昇順にソート
     for i in range(len(pw_wlist)):
@@ -124,10 +63,10 @@ while weight_ratio[0] > 0.01 and count < 5 and pruning_acc > original_acc * 0.01
         pw_ratio.append([])
     for i in range(len(pw_ratio)):
         if i == 0:
-            pw_ratio[i] = pw_wlist[i][int(pw_idx[i] * k)]
+            pw_ratio[i] = pw_wlist[i][int(conv_out[i] / 20 * count)]
         elif i != 0:
-            pw_ratio[i] = pw_wlist[i][int(pw_idx[i] * k) - 1]
-    k += 1
+            pw_ratio[i] = pw_wlist[i][int(conv_out[i] / 20 * count) - 1]
+    count += 1
 
     # 枝刈り本体
     with torch.no_grad():
@@ -164,8 +103,9 @@ while weight_ratio[0] > 0.01 and count < 5 and pruning_acc > original_acc * 0.01
 
     print()
     print(f'channel pruning: {count}')
-    count += 1
 
+    # パラメータの割合
+    weight_ratio = [100 for _ in range(conv_count)]
     with torch.no_grad():
         for i, conv in enumerate(conv_list):
             weight_ratio[i] = np.count_nonzero(conv.weight.cpu().numpy()) / np.size(conv.weight.cpu().numpy())
@@ -180,11 +120,13 @@ while weight_ratio[0] > 0.01 and count < 5 and pruning_acc > original_acc * 0.01
         channel_num_new.append(0)
 
     with torch.no_grad():
-        cnt = 0
-        for layer in new_net.features:
-            if isinstance(layer, nn.Conv2d):
-                channel_num_new[cnt] = conv_out[cnt] - ch_mask[cnt].channel_number(layer.weight)
-                cnt += 1
+        for i, conv in enumerate(conv_list):
+            channel_num_new[i] = conv_out[i] - ch_mask[i].channel_number(conv.weight)
+        # cnt = 0
+        # for layer in new_net.features:
+        #     if isinstance(layer, nn.Conv2d):
+        #         channel_num_new[cnt] = conv_out[cnt] - ch_mask[cnt].channel_number(layer.weight)
+        #         cnt += 1
     print(f'conv1_param: {weight_ratio[0]}, conv2_param: {weight_ratio[1]}, conv3_param: {weight_ratio[2]}')
     print(f'conv4_param: {weight_ratio[3]}, conv5_param: {weight_ratio[4]}')
     print(f'channel_number1: {channel_num_new[0]}, channel_number2: {channel_num_new[1]}, channel_number3: '
