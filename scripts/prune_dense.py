@@ -5,12 +5,11 @@ pardir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(pardir)
 
 from dense_mask_generator import DenseMaskGenerator
+from dataset import *
 
 import torch
-import torchvision
 import torch.nn as nn
 import torch.optim as optim
-import torchvision.transforms as transforms
 import numpy as np
 import cloudpickle
 # from draw_architecture import mydraw
@@ -18,89 +17,50 @@ import cloudpickle
 device = 'cuda'
 dtype = torch.float
 
-# データの前処理
-transform_train = transforms.Compose([
-    transforms.Resize(224),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
-
-transform_test = transforms.Compose([
-    transforms.Resize(224),
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
-# データの読み込み
-train_dataset = torchvision.datasets.CIFAR10(root='./data/',
-                                             train=True,
-                                             transform=transform_train,
-                                             download=True)
-test_dataset = torchvision.datasets.CIFAR10(root='./data/',
-                                            train=False,
-                                            transform=transform_test,
-                                            download=True)
-
-train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-                                           batch_size=64,
-                                           shuffle=True,
-                                           num_workers=2)
-test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
-                                          batch_size=64,
-                                          shuffle=False,
-                                          num_workers=2)
-
 # パラメータ利用
 with open('CIFAR10_original_train.pkl', 'rb') as f:
     new_net = cloudpickle.load(f)
 
 optimizer = optim.SGD(new_net.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
-criterion = nn.CrossEntropyLoss()
 
 original_acc = 0
 pruning_acc = 100
 count = 1
 k = 1
-dense_count = 0
+
+# 畳み込み層のリスト
+dense_list = [new_net.classifier[i] for i in range(len(new_net.classifier)) if isinstance(new_net.classifier[i], nn.Linear)]
+
+# 畳み込み層の数を計算
+dense_count = len(dense_list)
 
 # マスクのオブジェクト
-de_mask = []
+# de_mask = []
 with torch.no_grad():
-    for i in range(len(new_net.classifier)):
-        if isinstance(new_net.classifier[i], nn.Linear):
-            de_mask.append(DenseMaskGenerator())
-
-# 全結合層の数を計算
-with torch.no_grad():
-    for i in range(len(new_net.classifier)):
-        if isinstance(new_net.classifier[i], nn.Linear):
-            dense_count += 1
-
-# パラメータの割合
-weight_ratio = []
-for i in range(dense_count):
-    weight_ratio.append(100)
-
-# 枝刈り後のニューロン数
-neuron_num_new = []
-for i in range(dense_count):
-    neuron_num_new.append(0)
-
-# 重みの１次元ベクトルを保持
-pw_wlist = []
-for i in range(dense_count):
-    pw_wlist.append([])
+    de_mask = [DenseMaskGenerator() for _ in dense_list]
 
 # 全結合層の入出力数
-dense_in = []
-dense_out = []
-with torch.no_grad():
-    for i in range(len(new_net.classifier)):
-        if isinstance(new_net.classifier[i], nn.Linear):
-            dense_in.append(new_net.classifier[i].in_features)
-    for i in range(len(new_net.classifier)):
-        if isinstance(new_net.classifier[i], nn.Linear):
-            dense_out.append(new_net.classifier[i].out_features)
+dense_in = [dense.in_channels for dense in dense_list]
+dense_out = [dense.out_channels for dense in dense_list]
+
+# 畳み込みパラメータの凍結
+for param in new_net.features.parameters():
+    param.requires_grad = False
+
+# # パラメータの割合
+# weight_ratio = []
+# for i in range(dense_count):
+#     weight_ratio.append(100)
+#
+# # 枝刈り後のニューロン数
+# neuron_num_new = []
+# for i in range(dense_count):
+#     neuron_num_new.append(0)
+#
+# # 重みの１次元ベクトルを保持
+# pw_wlist = []
+# for i in range(dense_count):
+#     pw_wlist.append([])
 
 # 枝刈りの割合
 pw_idx = []
@@ -112,7 +72,7 @@ for param in new_net.features.parameters():
     param.requires_grad = False
 
 # weight_pruning
-while weight_ratio[0] > 0.01 and count < 20 and pruning_acc > original_acc * 0.05:
+while count < 20:
     # if count == 1 or count == 10 or count == 18:
     #     mydraw([torch.t(new_net.fc1.weight.data).cpu().numpy(), torch.t(new_net.fc2.weight.data).cpu().numpy()])
     for i in range(len(pw_wlist)):

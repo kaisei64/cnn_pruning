@@ -19,7 +19,6 @@ with open('CIFAR10_original_train.pkl', 'rb') as f:
 
 optimizer = optim.SGD(new_net.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
 
-
 # 畳み込み層のリスト
 conv_list = [new_net.features[i] for i in range(len(new_net.features)) if isinstance(new_net.features[i], nn.Conv2d)]
 
@@ -30,9 +29,7 @@ conv_count = len(conv_list)
 with torch.no_grad():
     ch_mask = [ChannelMaskGenerator() for _ in range(conv_count)]
 
-
-# 畳み込み層の入出力数
-conv_in = [conv.in_channels for conv in conv_list]
+# 畳み込み層の出力数
 conv_out = [conv.out_channels for conv in conv_list]
 
 # 全結合パラメータの凍結
@@ -48,25 +45,14 @@ while count < 5:
     # ノルムの取得
     with torch.no_grad():
         for i, conv in enumerate(conv_list):
-            for param in conv.weight:
-                tmp = np.sum(torch.abs(param).cpu().numpy())
-                pw_wlist[i].append(tmp)
-        print(pw_wlist)
+            pw_wlist[i] = [np.sum(torch.abs(param).cpu().numpy()) for param in conv.weight]
 
     # 昇順にソート
     for i in range(len(pw_wlist)):
         pw_wlist[i].sort()
 
     # 刈る基準の閾値を格納
-    pw_ratio = []
-    for i in range(len(pw_idx)):
-        pw_ratio.append([])
-    for i in range(len(pw_ratio)):
-        if i == 0:
-            pw_ratio[i] = pw_wlist[i][int(conv_out[i] / 20 * count)]
-        elif i != 0:
-            pw_ratio[i] = pw_wlist[i][int(conv_out[i] / 20 * count) - 1]
-    count += 1
+    pw_ratio = [pw_wlist[i][int(conv_out[i] / 20 * count)] for i in range(len(conv_out))]
 
     # 枝刈り本体
     with torch.no_grad():
@@ -75,58 +61,22 @@ while count < 5:
                                                                               None if i == 0 else conv_list[i - 1].weight.data.clone(),
                                                                               pw_ratio[i]), device=device, dtype=dtype)
 
-        # new_net.features[0].weight.data *= torch.tensor(
-        #     ch_mask[0].generate_mask(new_net.features[0].weight.data.clone(),
-        #                              None,
-        #                              pw_ratio[0]), device=device, dtype=dtype)
-        # new_net.features[3].weight.data *= torch.tensor(
-        #     ch_mask[1].generate_mask(new_net.features[3].weight.data.clone(),
-        #                              new_net.features[0].weight.data.clone(),
-        #                              pw_ratio[1]), device=device, dtype=dtype)
-        # new_net.features[6].weight.data *= torch.tensor(
-        #     ch_mask[2].generate_mask(new_net.features[6].weight.data.clone(),
-        #                              new_net.features[3].weight.data.clone(),
-        #                              pw_ratio[2]), device=device, dtype=dtype)
-        # new_net.features[8].weight.data *= torch.tensor(
-        #     ch_mask[3].generate_mask(new_net.features[8].weight.data.clone(),
-        #                              new_net.features[6].weight.data.clone(),
-        #                              pw_ratio[3]), device=device, dtype=dtype)
-        # new_net.features[10].weight.data *= torch.tensor(
-        #     ch_mask[4].generate_mask(new_net.features[10].weight.data.clone(),
-        #                              new_net.features[8].weight.data.clone(),
-        #                              pw_ratio[4]), device=device, dtype=dtype)
-        # linear1_mask = torch.tensor(p5.linear_mask(torch.t(new_net.fc1.weight.data.clone())), device=device,
-        #                             dtype=dtype)
         new_net.classifier[1].weight.data = torch.tensor(new_net.classifier[1].weight.data.clone().cpu().numpy()
                                                          * ch_mask[4].linear_mask(
             torch.t(new_net.classifier[1].weight.data.clone())), device=device, dtype=dtype)
 
     print()
     print(f'channel pruning: {count}')
+    count += 1
 
     # パラメータの割合
-    weight_ratio = [100 for _ in range(conv_count)]
     with torch.no_grad():
-        for i, conv in enumerate(conv_list):
-            weight_ratio[i] = np.count_nonzero(conv.weight.cpu().numpy()) / np.size(conv.weight.cpu().numpy())
-        # for param in new_net.features:
-        #     if isinstance(param, nn.Conv2d):
-        #         weight_ratio[cnt] = np.count_nonzero(param.weight.cpu().numpy()) / np.size(param.weight.cpu().numpy())
-        #         cnt += 1
+        weight_ratio = [np.count_nonzero(conv.weight.cpu().numpy()) / np.size(conv.weight.cpu().numpy()) for conv in conv_list]
 
     # 枝刈り後のチャネル数
-    channel_num_new = []
-    for i in range(conv_count):
-        channel_num_new.append(0)
-
     with torch.no_grad():
-        for i, conv in enumerate(conv_list):
-            channel_num_new[i] = conv_out[i] - ch_mask[i].channel_number(conv.weight)
-        # cnt = 0
-        # for layer in new_net.features:
-        #     if isinstance(layer, nn.Conv2d):
-        #         channel_num_new[cnt] = conv_out[cnt] - ch_mask[cnt].channel_number(layer.weight)
-        #         cnt += 1
+        channel_num_new = [conv_out[i] - ch_mask[i].channel_number(conv.weight) for i, conv in enumerate(conv_list)]
+
     print(f'conv1_param: {weight_ratio[0]}, conv2_param: {weight_ratio[1]}, conv3_param: {weight_ratio[2]}')
     print(f'conv4_param: {weight_ratio[3]}, conv5_param: {weight_ratio[4]}')
     print(f'channel_number1: {channel_num_new[0]}, channel_number2: {channel_num_new[1]}, channel_number3: '
