@@ -12,6 +12,7 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import cloudpickle
+
 # from draw_architecture import mydraw
 
 device = 'cuda'
@@ -26,12 +27,12 @@ optimizer = optim.SGD(new_net.parameters(), lr=0.01, momentum=0.9, weight_decay=
 original_acc = 0
 pruning_acc = 100
 count = 1
-k = 1
 
-# 畳み込み層のリスト
-dense_list = [new_net.classifier[i] for i in range(len(new_net.classifier)) if isinstance(new_net.classifier[i], nn.Linear)]
+# 全結合層のリスト
+dense_list = [new_net.classifier[i] for i in range(len(new_net.classifier)) if
+              isinstance(new_net.classifier[i], nn.Linear)]
 
-# 畳み込み層の数を計算
+# 全結合層の数を計算
 dense_count = len(dense_list)
 
 # マスクのオブジェクト
@@ -40,8 +41,8 @@ with torch.no_grad():
     de_mask = [DenseMaskGenerator() for _ in dense_list]
 
 # 全結合層の入出力数
-dense_in = [dense.in_channels for dense in dense_list]
-dense_out = [dense.out_channels for dense in dense_list]
+dense_in = [dense.in_features for dense in dense_list]
+dense_out = [dense.out_features for dense in dense_list]
 
 # 畳み込みパラメータの凍結
 for param in new_net.features.parameters():
@@ -56,11 +57,6 @@ for param in new_net.features.parameters():
 # neuron_num_new = []
 # for i in range(dense_count):
 #     neuron_num_new.append(0)
-#
-# # 重みの１次元ベクトルを保持
-# pw_wlist = []
-# for i in range(dense_count):
-#     pw_wlist.append([])
 
 # 枝刈りの割合
 pw_idx = []
@@ -75,32 +71,40 @@ for param in new_net.features.parameters():
 while count < 20:
     # if count == 1 or count == 10 or count == 18:
     #     mydraw([torch.t(new_net.fc1.weight.data).cpu().numpy(), torch.t(new_net.fc2.weight.data).cpu().numpy()])
-    for i in range(len(pw_wlist)):
-        pw_wlist[i] = []
+
+    # 重みの１次元ベクトルを保持
+    # pw_wlist = [list() for _ in range(dense_count)]
+
+    # for i in range(len(pw_wlist)):
+    #     pw_wlist[i] = []
 
     # 重みを１次元ベクトル化
     with torch.no_grad():
-        cnt = 0
-        for param in new_net.classifier:
-            if isinstance(param, nn.Linear):
-                pw_wlist[cnt] = np.reshape(torch.abs(param.weight.data.clone()).cpu().numpy(),
-                                           (1, dense_in[cnt] * dense_out[cnt])).squeeze()
-                cnt += 1
+        pw_wlist = [np.reshape(torch.abs(dense.weight.data.clone()).cpu().numpy(),
+                               (1, dense_in[i] * dense_out[i])).squeeze() for i, dense in enumerate(dense_list)]
+        # cnt = 0
+        # for param in new_net.classifier:
+        #     if isinstance(param, nn.Linear):
+        #         pw_wlist[cnt] = np.reshape(torch.abs(param.weight.data.clone()).cpu().numpy(),
+        #                                    (1, dense_in[cnt] * dense_out[cnt])).squeeze()
+        #         cnt += 1
 
     # 昇順にソート
-    pw_sort = []
-    for i in range(len(pw_idx)):
-        pw_sort.append([])
-    for i in range(len(pw_idx)):
-        pw_sort[i] = np.sort(pw_wlist[i], False)
+    for i in range(len(pw_wlist)):
+        pw_wlist[i].sort()
+    # pw_sort = []
+    # for i in range(len(pw_idx)):
+    #     pw_sort.append([])
+    # for i in range(len(pw_idx)):
+    #     pw_sort[i] = np.sort(pw_wlist[i], False)
 
     # 刈る基準の閾値を格納
-    pw_ratio = []
-    for i in range(len(pw_idx)):
-        pw_ratio.append([])
-    for i in range(len(pw_ratio)):
-        pw_ratio[i] = pw_sort[i][int(pw_idx[i] * k) - 1]
-    k = k + 1
+    pw_ratio = [pw_wlist[i][int(dense_out[i] / 20 * count)] for i in range(len(dense_out))]
+    # pw_ratio = []
+    # for i in range(len(pw_idx)):
+    #     pw_ratio.append([])
+    # for i in range(len(pw_ratio)):
+    #     pw_ratio[i] = pw_sort[i][int(pw_idx[i] * k) - 1]
 
     # 枝刈り本体
     with torch.no_grad():
