@@ -52,7 +52,7 @@ while count < 5:
         pw_wlist[i].sort()
 
     # 刈る基準の閾値を格納
-    pw_ratio = [pw_wlist[i][int(conv_out[i] / 20 * count)] for i in range(len(conv_out))]
+    pw_ratio = [pw_wlist[i][int(conv_out[i] / 5 * count)] for i in range(len(conv_out))]
 
     # 枝刈り本体
     with torch.no_grad():

@@ -11,7 +11,7 @@ class DenseMaskGenerator:
     def generate_mask(self, x, prune_ratio):
         self.prune_ratio = prune_ratio
         sub_x = x.cpu().numpy()
-        self.mask = np.where(np.abs(sub_x) < self.prune_ratio, 0, 1)
+        self.mask = np.where(np.abs(sub_x) <= self.prune_ratio, 0, 1)
         return self.mask
 
     # 次層の枝刈りに付随して消える前層の枝を消す(ニューロンプルーニングのとき)

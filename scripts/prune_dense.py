@@ -62,7 +62,7 @@ while count < 20:
         pw_wlist[i].sort()
 
     # 刈る基準の閾値を格納
-    pw_ratio = [pw_wlist[i][int(dense_in[i] * dense_out[i] / 20 * count)] for i in range(len(dense_out))]
+    pw_ratio = [pw_wlist[i][int(dense_in[i] * dense_out[i] / 5 * count) - 1] for i in range(len(dense_out))]
 
     # 枝刈り本体
     with torch.no_grad():
@@ -88,18 +88,10 @@ while count < 20:
     print(f'neuron_number1: {neuron_num_new[0]}, neuron_number2: {neuron_num_new[1]}, neuron_number3: '
           f'{neuron_num_new[2]}')
 
-    with torch.no_grad():
-        for layer in new_net.classifier:
-            if isinstance(layer, nn.Linear):
-                np.count_nonzero(layer.weight.cpu().numpy())
-
     f_num_epochs = 3
     # finetune
     for epoch in range(f_num_epochs):
-        train_loss = 0
-        train_acc = 0
-        val_loss = 0
-        val_acc = 0
+        train_loss, train_acc, val_loss, val_acc = 0, 0, 0, 0
 
         # train
         new_net.train()
@@ -112,8 +104,14 @@ while count < 20:
             loss = criterion(outputs, labels)
             train_loss += loss.item()
             train_acc += (outputs.max(1)[1] == labels).sum().item()
+            # print(train_acc / ((i+1) * 64))
             loss.backward()
             optimizer.step()
+            # 枝刈り本体
+            with torch.no_grad():
+                for i, dense in enumerate(dense_list):
+                    dense.weight.data *= torch.tensor(de_mask[i].generate_mask(dense.weight.data.clone(), pw_ratio[i])
+                                                      , device=device, dtype=dtype)
 
         avg_train_loss = train_loss / len(train_loader.dataset)
         avg_train_acc = train_acc / len(train_loader.dataset)
@@ -123,8 +121,7 @@ while count < 20:
         with torch.no_grad():
             for images, labels in test_loader:
                 # view()での変換をしない
-                images = images.to(device)
-                labels = labels.to(device)
+                images, labels = images.to(device), labels.to(device)
                 outputs = new_net(images)
                 loss = criterion(outputs, labels)
                 val_loss += loss.item()
