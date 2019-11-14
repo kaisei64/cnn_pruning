@@ -1,5 +1,6 @@
 import os
 import sys
+
 pardir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(pardir)
 from channel_mask_generator import ChannelMaskGenerator
@@ -49,18 +50,20 @@ while count < 5:
         pw_wlist[i].sort()
 
     # 刈る基準の閾値を格納
-    pw_ratio = [pw_wlist[i][int(conv_out[i] / 5 * count)] for i in range(len(conv_out))]
+    pw_ratio = [pw_wlist[i][int(conv_out[i] / 1 * count) - 1] for i in range(len(conv_out))]
 
     # 枝刈り本体
+    save_mask = [list() for _ in range(len(conv_list)+1)]
     with torch.no_grad():
         for i in range(len(conv_list)):
-            conv_list[i].weight.data *= torch.tensor(ch_mask[i].generate_mask(conv_list[i].weight.data.clone(),
-                                                                              None if i == 0 else conv_list[i - 1].weight.data.clone(),
-                                                                              pw_ratio[i]), device=device, dtype=dtype)
+            save_mask[i] = ch_mask[i].generate_mask(conv_list[i].weight.data.clone(),
+                                                    None if i == 0 else conv_list[i - 1].weight.data.clone(),
+                                                    pw_ratio[i])
+            conv_list[i].weight.data *= torch.tensor(save_mask[i], device=device, dtype=dtype)
 
+        save_mask[len(conv_list)] = ch_mask[len(conv_list)-1].linear_mask(torch.t(new_net.classifier[1].weight.data.clone()))
         new_net.classifier[1].weight.data = torch.tensor(new_net.classifier[1].weight.data.clone().cpu().numpy()
-                                                         * ch_mask[4].linear_mask(
-            torch.t(new_net.classifier[1].weight.data.clone())), device=device, dtype=dtype)
+                                                         * save_mask[len(conv_list)], device=device, dtype=dtype)
 
     print()
     print(f'channel pruning: {count}')
@@ -68,17 +71,18 @@ while count < 5:
 
     # パラメータの割合
     with torch.no_grad():
-        weight_ratio = [np.count_nonzero(conv.weight.cpu().numpy()) / np.size(conv.weight.cpu().numpy()) for conv in conv_list]
+        weight_ratio = [np.count_nonzero(conv.weight.cpu().numpy()) / np.size(conv.weight.cpu().numpy()) for conv in
+                        conv_list]
 
     # 枝刈り後のチャネル数
     with torch.no_grad():
         channel_num_new = [conv_out[i] - ch_mask[i].channel_number(conv.weight) for i, conv in enumerate(conv_list)]
 
     for i in range(len(conv_list)):
-        print(f'conv{i+1}_param: {weight_ratio[i]:.4f} ', end="")
+        print(f'conv{i + 1}_param: {weight_ratio[i]:.4f}, ', end="")
     print()
     for i in range(len(conv_list)):
-        print(f'channel_number{i+1}: {channel_num_new[i]} ', end="")
+        print(f'channel_number{i + 1}: {channel_num_new[i]}, ', end="")
     print()
 
     f_num_epochs = 3
@@ -88,8 +92,8 @@ while count < 5:
         train_acc = 0
         val_loss = 0
         val_acc = 0
-        print("first", np.count_nonzero(new_net.features[0].weight.data.cpu().numpy()))
-        print("first_mask", np.count_nonzero(ch_mask[0].mask))
+        # print("first", np.count_nonzero(new_net.features[0].weight.data.cpu().numpy()))
+        # print("first_mask", np.count_nonzero(ch_mask[0].mask))
 
         # train
         new_net.train()
@@ -104,9 +108,16 @@ while count < 5:
             train_acc += (outputs.max(1)[1] == labels).sum().item()
             loss.backward()
             optimizer.step()
-            if epoch == 0 and i == 0:
-                print("train", np.count_nonzero(new_net.features[0].weight.data.cpu().numpy()))
-                print("train_grad", np.count_nonzero(new_net.features[0].weight.grad.cpu().numpy()))
+            with torch.no_grad():
+                for j, conv in enumerate(conv_list):
+                    conv.weight.data *= torch.tensor(save_mask[j], device=device, dtype=dtype)
+                new_net.classifier[1].weight.data = torch.tensor(
+                    new_net.classifier[1].weight.data.clone().cpu().numpy()
+                    * save_mask[len(conv_list)], device=device, dtype=dtype)
+
+            # if epoch == 0 and i == 0:
+            # print("train", np.count_nonzero(new_net.features[0].weight.data.cpu().numpy()))
+            # print("train_grad", np.count_nonzero(new_net.features[0].weight.grad.cpu().numpy()))
 
         avg_train_loss, avg_train_acc = train_loss / len(train_loader.dataset), train_acc / len(train_loader.dataset)
 
@@ -126,8 +137,8 @@ while count < 5:
         print(f'Epoch [{epoch + 1}/{f_num_epochs}], Loss: {avg_train_loss:.4f}, train_acc: {avg_train_acc:.4f}, '
               f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
 
-    print("end", np.count_nonzero(new_net.features[0].weight.data.cpu().numpy()))
-    print("end_mask", np.count_nonzero(ch_mask[0].mask))
+    # print("end", np.count_nonzero(new_net.features[0].weight.data.cpu().numpy()))
+    # print("end_mask", np.count_nonzero(ch_mask[0].mask))
 
 # パラメータの保存
 # with open('CIFAR10_conv_prune.pkl', 'wb') as f:

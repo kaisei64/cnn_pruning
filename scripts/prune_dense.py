@@ -41,7 +41,7 @@ for param in new_net.features.parameters():
 
 # weight_pruning
 count = 1
-while count < 20:
+while count < 21:
     # 全結合層を可視化
     # if count == 1 or count == 10 or count == 18:
     #     mydraw([torch.t(new_net.fc1.weight.data).cpu().numpy(), torch.t(new_net.fc2.weight.data).cpu().numpy()])
@@ -56,7 +56,7 @@ while count < 20:
         pw_wlist[i].sort()
 
     # 刈る基準の閾値を格納
-    pw_ratio = [pw_wlist[i][int(dense_in[i] * dense_out[i] / 5 * count) - 1] for i in range(len(dense_out))]
+    pw_ratio = [pw_wlist[i][int(dense_in[i] * dense_out[i] / 20 * count) - 1] for i in range(len(dense_out))]
 
     # 枝刈り本体
     save_mask = [list() for _ in range(len(dense_list))]
@@ -79,10 +79,10 @@ while count < 20:
         neuron_num_new = [dense_in[i] - de_mask[i].neuron_number(torch.t(dense.weight)) for i, dense in enumerate(dense_list)]
 
     for i in range(len(dense_list)):
-        print(f'dense{i+1}_param: {weight_ratio[i]:.4f} ', end="")
+        print(f'dense{i+1}_param: {weight_ratio[i]:.4f}, ', end="")
     print()
     for i in range(len(dense_list)):
-        print(f'neuron_number{i+1}: {neuron_num_new[i]} ', end="")
+        print(f'neuron_number{i+1}: {neuron_num_new[i]}, ', end="")
     print()
 
     f_num_epochs = 3
@@ -101,7 +101,6 @@ while count < 20:
             loss = criterion(outputs, labels)
             train_loss += loss.item()
             train_acc += (outputs.max(1)[1] == labels).sum().item()
-            # print(train_acc / ((i+1) * 64))
             loss.backward()
             optimizer.step()
             # 枝刈り本体
