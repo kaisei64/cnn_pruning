@@ -77,10 +77,12 @@ while count < 5:
     with torch.no_grad():
         channel_num_new = [conv_out[i] - ch_mask[i].channel_number(conv.weight) for i, conv in enumerate(conv_list)]
 
-    print(f'conv1_param: {weight_ratio[0]}, conv2_param: {weight_ratio[1]}, conv3_param: {weight_ratio[2]}')
-    print(f'conv4_param: {weight_ratio[3]}, conv5_param: {weight_ratio[4]}')
-    print(f'channel_number1: {channel_num_new[0]}, channel_number2: {channel_num_new[1]}, channel_number3: '
-          f'{channel_num_new[2]}, channel_number4: {channel_num_new[3]}, channel_number5: {channel_num_new[4]}')
+    for i in range(len(conv_list)):
+        print(f'conv{i+1}_param: {weight_ratio[i]:.4f} ', end="")
+    print()
+    for i in range(len(conv_list)):
+        print(f'channel_number{i+1}: {channel_num_new[i]} ', end="")
+    print()
 
     f_num_epochs = 3
     # finetune
@@ -109,8 +111,7 @@ while count < 5:
                 print("train", np.count_nonzero(new_net.features[0].weight.data.cpu().numpy()))
                 print("train_grad", np.count_nonzero(new_net.features[0].weight.grad.cpu().numpy()))
 
-        avg_train_loss = train_loss / len(train_loader.dataset)
-        avg_train_acc = train_acc / len(train_loader.dataset)
+        avg_train_loss, avg_train_acc = train_loss / len(train_loader.dataset), train_acc / len(train_loader.dataset)
 
         # val
         new_net.eval()
@@ -123,9 +124,7 @@ while count < 5:
                 loss = criterion(outputs, labels)
                 val_loss += loss.item()
                 val_acc += (outputs.max(1)[1] == labels).sum().item()
-        avg_val_loss = val_loss / len(test_loader.dataset)
-        avg_val_acc = val_acc / len(test_loader.dataset)
-        pruning_acc = avg_val_acc
+        avg_val_loss, avg_val_acc = val_loss / len(test_loader.dataset), val_acc / len(test_loader.dataset)
 
         print(f'Epoch [{epoch + 1}/{f_num_epochs}], Loss: {avg_train_loss:.4f}, train_acc: {avg_train_acc:.4f}, '
               f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')

@@ -86,6 +86,7 @@ while count < 20:
     print()
     for i in range(len(dense_list)):
         print(f'neuron_number{i+1}: {neuron_num_new[i]} ', end="")
+    print()
 
     f_num_epochs = 3
     # finetune
