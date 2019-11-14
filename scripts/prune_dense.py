@@ -23,9 +23,6 @@ with open('CIFAR10_original_train.pkl', 'rb') as f:
 
 optimizer = optim.SGD(new_net.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
 
-original_acc = 0
-pruning_acc = 100
-
 # 全結合層のリスト
 dense_list = [new_net.classifier[i] for i in range(len(new_net.classifier)) if
               isinstance(new_net.classifier[i], nn.Linear)]
