@@ -1,12 +1,9 @@
 import os
 import sys
-
 pardir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(pardir)
-
 from channel_mask_generator import ChannelMaskGenerator
 from dataset import *
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
