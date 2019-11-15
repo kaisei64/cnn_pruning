@@ -32,10 +32,10 @@ test_dataset = torchvision.datasets.CIFAR10(root='./data/',
                                             download=True)
 
 train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-                                           batch_size=64,
+                                           batch_size=256,
                                            shuffle=True,
                                            num_workers=2)
 test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
-                                          batch_size=64,
+                                          batch_size=256,
                                           shuffle=False,
                                           num_workers=2)

@@ -9,10 +9,10 @@ class ChannelMaskGenerator:
 
     def generate_mask(self, x, pre_x, prune_ratio):
         self.prune_ratio = prune_ratio
-        sub_x = x.cpu().numpy()
+        sub_x = x.cpu().detach().numpy()
         self.mask = np.ones(sub_x.shape)
         if pre_x is not None:
-            sub_pre_x = pre_x.cpu().numpy()
+            sub_pre_x = pre_x.cpu().detach().numpy()
             for i, j in enumerate(sub_pre_x):
                 if np.sum(np.abs(sub_pre_x[i])) == 0:
                     for k, l in enumerate(self.mask):
@@ -23,17 +23,9 @@ class ChannelMaskGenerator:
                 self.mask[i] = 0
         return self.mask
 
-    def linear_mask(self, x):
-        sub_x = x.cpu().numpy()
-        l_mask = np.ones(sub_x.shape)
-        for i, j in enumerate(self.mask):
-            if np.sum(np.abs(self.mask[i])) == 0:
-                l_mask[i] = 0
-        return l_mask.T
-
     def channel_number(self, x):
         self.count = 0
-        sub_x = x.cpu().numpy()
+        sub_x = x.cpu().detach().numpy()
         for i, j in enumerate(sub_x):
             if np.all(self.mask[i] == 0):
                 self.count += 1

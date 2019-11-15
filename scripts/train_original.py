@@ -1,28 +1,26 @@
 import os
 import sys
-
 pardir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(pardir)
-
 from dataset import *
-
 import torch
 import torchvision.models as models
 import torch.optim as optim
+import pandas as pd
 import cloudpickle
+import time
 
 net = models.alexnet(num_classes=10).to(device)
 optimizer = optim.SGD(net.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
 num_epochs = 15
 
-for epoch in range(num_epochs):
-    train_loss = 0
-    train_acc = 0
-    val_loss = 0
-    val_acc = 0
+data = {'epoch': [], 'time': [], 'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
 
+start = time.time()
+for epoch in range(num_epochs):
     # train
     net.train()
+    train_loss, train_acc = 0, 0
     for i, (images, labels) in enumerate(train_loader):
         # view()での変換をしない
         images, labels = images.to(device), labels.to(device)
@@ -40,6 +38,7 @@ for epoch in range(num_epochs):
 
     # val
     net.eval()
+    val_loss, val_acc = 0, 0
     with torch.no_grad():
         for images, labels in test_loader:
             # view()での変換をしない
@@ -52,9 +51,20 @@ for epoch in range(num_epochs):
     avg_val_loss = val_loss / len(test_loader.dataset)
     avg_val_acc = val_acc / len(test_loader.dataset)
     original_acc = avg_val_acc
+    process_time = time.time() - start
 
-    print(f'Epoch [{epoch + 1}/{num_epochs}], Loss: {avg_train_loss:.4f}, train_acc: {avg_train_acc:.4f}, '
-          f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
+    print(f'epoch [{epoch + 1}/{num_epochs}], time: {process_time:.4f}, train_loss: {avg_train_loss:.4f}'
+          f', train_acc: {avg_train_acc:.4f}, 'f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
+
+    # 結果の保存
+    data['epoch'].append(epoch + 1)
+    data['time'].append(process_time)
+    data['train_loss'].append(avg_train_loss)
+    data['train_acc'].append(avg_train_acc)
+    data['val_loss'].append(val_loss)
+    data['val_acc'].append(avg_val_acc)
+    df = pd.DataFrame.from_dict(data)
+    df.to_csv('result.csv')
 
 # パラメータの保存
 with open('CIFAR10_original_train.pkl', 'wb') as f:
