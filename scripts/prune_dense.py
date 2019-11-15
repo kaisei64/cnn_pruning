@@ -29,11 +29,6 @@ dense_count = len(dense_list)
 
 # マスクのオブジェクト
 de_mask = [DenseMaskGenerator() for _ in dense_list]
-
-# 全結合層の入出力数
-dense_in = [dense.in_features for dense in dense_list]
-dense_out = [dense.out_features for dense in dense_list]
-
 inv_prune_ratio = 10
 
 # weight_pruning
@@ -45,14 +40,16 @@ for count in range(1, inv_prune_ratio):
 
     # 重みを１次元ベクトル化
     weight_vector = [np.reshape(torch.abs(dense.weight.data.clone()).cpu().detach().numpy(),
-                                (1, dense_in[i] * dense_out[i])).squeeze() for i, dense in enumerate(dense_list)]
+                                (1, dense_list[i].in_features * dense_list[i].out_features)).squeeze()
+                     for i, dense in enumerate(dense_list)]
 
     # 昇順にソート
     for i in range(len(weight_vector)):
         weight_vector[i].sort()
 
     # 刈る基準の閾値を格納
-    threshold = [weight_vector[i][int(dense_in[i] * dense_out[i] / inv_prune_ratio * count) - 1] for i in range(dense_count)]
+    threshold = [weight_vector[i][int(dense_list[i].in_features * dense_list[i].out_features / inv_prune_ratio * count) - 1]
+                 for i in range(dense_count)]
 
     # 枝刈り本体
     with torch.no_grad():
@@ -65,8 +62,7 @@ for count in range(1, inv_prune_ratio):
                     for dense in dense_list]
 
     # 枝刈り後のニューロン数
-    with torch.no_grad():
-        neuron_num_new = [dense_in[i] - de_mask[i].neuron_number(torch.t(dense.weight)) for i, dense in enumerate(dense_list)]
+    neuron_num_new = [dense_list[i].in_features - de_mask[i].neuron_number(torch.t(dense.weight)) for i, dense in enumerate(dense_list)]
 
     for i in range(len(dense_list)):
         print(f'dense{i+1}_param: {weight_ratio[i]:.4f}', end=", " if i != dense_count - 1 else "\n"if i != dense_count - 1 else "\n")
@@ -91,7 +87,6 @@ for count in range(1, inv_prune_ratio):
             with torch.no_grad():
                 for j, dense in enumerate(dense_list):
                     dense.weight.data *= torch.tensor(de_mask[j].mask, device=device, dtype=dtype)
-
         avg_train_loss, avg_train_acc = train_loss / len(train_loader.dataset), train_acc / len(train_loader.dataset)
 
         # val
