@@ -52,9 +52,9 @@ for count in range(1, inv_prune_ratio):
     channel_num_new = [conv_list[i].out_channels - ch_mask[i].channel_number(conv.weight) for i, conv in enumerate(conv_list)]
 
     for i in range(conv_count):
-        print(f'conv{i + 1}_param: {weight_ratio[i]:.4f}, ', end="" if i != conv_count - 1 else "\n")
+        print(f'conv{i + 1}_param: {weight_ratio[i]:.4f}', end=", " if i != conv_count - 1 else "\n")
     for i in range(len(conv_list)):
-        print(f'channel_number{i + 1}: {channel_num_new[i]}, ', end="" if i != conv_count - 1 else "\n")
+        print(f'channel_number{i + 1}: {channel_num_new[i]}', end=", " if i != conv_count - 1 else "\n")
 
     f_num_epochs = 5
     # finetune
@@ -88,7 +88,7 @@ for count in range(1, inv_prune_ratio):
                 val_acc += (outputs.max(1)[1] == labels).sum().item()
         avg_val_loss, avg_val_acc = val_loss / len(test_loader.dataset), val_acc / len(test_loader.dataset)
 
-        print(f'Epoch [{epoch + 1}/{f_num_epochs}], Loss: {avg_train_loss:.4f}, train_acc: {avg_train_acc:.4f}, '
+        print(f'epoch [{epoch + 1}/{f_num_epochs}], train_loss: {avg_train_loss:.4f}, train_acc: {avg_train_acc:.4f}, '
               f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
 
 # パラメータの保存

@@ -7,7 +7,6 @@ device = 'cuda'
 dtype = torch.float
 criterion = nn.CrossEntropyLoss()
 
-
 # データの前処理
 transform_train = transforms.Compose([
     transforms.Resize(224),

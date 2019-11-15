@@ -42,15 +42,12 @@ for epoch in range(num_epochs):
     with torch.no_grad():
         for images, labels in test_loader:
             # view()での変換をしない
-            images = images.to(device)
             labels = labels.to(device)
-            outputs = net(images)
+            outputs = net(images.to(device))
             loss = criterion(outputs, labels)
             val_loss += loss.item()
             val_acc += (outputs.max(1)[1] == labels).sum().item()
-    avg_val_loss = val_loss / len(test_loader.dataset)
-    avg_val_acc = val_acc / len(test_loader.dataset)
-    original_acc = avg_val_acc
+    avg_val_loss, avg_val_acc = val_loss / len(test_loader.dataset), val_acc / len(test_loader.dataset)
     process_time = time.time() - start
 
     print(f'epoch [{epoch + 1}/{num_epochs}], time: {process_time:.4f}, train_loss: {avg_train_loss:.4f}'

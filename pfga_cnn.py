@@ -33,7 +33,7 @@ class PFGA:
         for i in self.family:
             if i[1] is not None:
                 if idx[1] is not None:
-                    if (self.better_high == True and idx[1] < i[1]) or (self.better_high == False and idx[1] > i[1]):
+                    if (self.better_high is True and idx[1] < i[1]) or (self.better_high is False and idx[1] > i[1]):
                         idx = i
                 else:
                     idx = i

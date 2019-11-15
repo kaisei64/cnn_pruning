@@ -14,88 +14,73 @@ import cloudpickle
 device = 'cuda'
 dtype = torch.float
 
-# パラメータ利用
+# パラメータ利用, 全結合パラメータの凍結
 with open('CIFAR10_original_train.pkl', 'rb') as f:
     new_net = cloudpickle.load(f)
+for param in new_net.features.parameters():
+    param.requires_grad = False
 
 optimizer = optim.SGD(new_net.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
 
 # 全結合層のリスト
 dense_list = [new_net.classifier[i] for i in range(len(new_net.classifier)) if
               isinstance(new_net.classifier[i], nn.Linear)]
-
-# 全結合層の数を計算
 dense_count = len(dense_list)
 
 # マスクのオブジェクト
-with torch.no_grad():
-    de_mask = [DenseMaskGenerator() for _ in dense_list]
+de_mask = [DenseMaskGenerator() for _ in dense_list]
 
 # 全結合層の入出力数
 dense_in = [dense.in_features for dense in dense_list]
 dense_out = [dense.out_features for dense in dense_list]
 
-# 全結合パラメータの凍結
-for param in new_net.features.parameters():
-    param.requires_grad = False
+inv_prune_ratio = 10
 
 # weight_pruning
-count = 1
-while count < 21:
+for count in range(1, inv_prune_ratio):
+    print(f'\nweight pruning: {count}')
     # 全結合層を可視化
     # if count == 1 or count == 10 or count == 18:
     #     mydraw([torch.t(new_net.fc1.weight.data).cpu().numpy(), torch.t(new_net.fc2.weight.data).cpu().numpy()])
 
     # 重みを１次元ベクトル化
-    with torch.no_grad():
-        pw_wlist = [np.reshape(torch.abs(dense.weight.data.clone()).cpu().numpy(),
-                               (1, dense_in[i] * dense_out[i])).squeeze() for i, dense in enumerate(dense_list)]
+    weight_vector = [np.reshape(torch.abs(dense.weight.data.clone()).cpu().detach().numpy(),
+                                (1, dense_in[i] * dense_out[i])).squeeze() for i, dense in enumerate(dense_list)]
 
     # 昇順にソート
-    for i in range(len(pw_wlist)):
-        pw_wlist[i].sort()
+    for i in range(len(weight_vector)):
+        weight_vector[i].sort()
 
     # 刈る基準の閾値を格納
-    pw_ratio = [pw_wlist[i][int(dense_in[i] * dense_out[i] / 20 * count) - 1] for i in range(len(dense_out))]
+    threshold = [weight_vector[i][int(dense_in[i] * dense_out[i] / inv_prune_ratio * count) - 1] for i in range(dense_count)]
 
     # 枝刈り本体
-    save_mask = [list() for _ in range(len(dense_list))]
     with torch.no_grad():
         for i, dense in enumerate(dense_list):
-            save_mask[i] = de_mask[i].generate_mask(dense.weight.data.clone(), pw_ratio[i])
-            dense.weight.data *= torch.tensor(save_mask[i], device=device, dtype=dtype)
-
-    print()
-    print(f'weight pruning: {count}')
-    count += 1
+            save_mask = de_mask[i].generate_mask(dense.weight.data.clone(), threshold[i])
+            dense.weight.data *= torch.tensor(save_mask, device=device, dtype=dtype)
 
     # パラメータの割合
-    with torch.no_grad():
-        weight_ratio = [np.count_nonzero(dense.weight.cpu().numpy()) / np.size(dense.weight.cpu().numpy()) for dense in
-                        dense_list]
+    weight_ratio = [np.count_nonzero(dense.weight.cpu().detach().numpy()) / np.size(dense.weight.cpu().detach().numpy())
+                    for dense in dense_list]
 
     # 枝刈り後のニューロン数
     with torch.no_grad():
         neuron_num_new = [dense_in[i] - de_mask[i].neuron_number(torch.t(dense.weight)) for i, dense in enumerate(dense_list)]
 
     for i in range(len(dense_list)):
-        print(f'dense{i+1}_param: {weight_ratio[i]:.4f}, ', end="")
-    print()
+        print(f'dense{i+1}_param: {weight_ratio[i]:.4f}', end=", " if i != dense_count - 1 else "\n"if i != dense_count - 1 else "\n")
     for i in range(len(dense_list)):
-        print(f'neuron_number{i+1}: {neuron_num_new[i]}, ', end="")
-    print()
+        print(f'neuron_number{i+1}: {neuron_num_new[i]}', end=", " if i != dense_count - 1 else "\n"if i != dense_count - 1 else "\n")
 
-    f_num_epochs = 3
+    f_num_epochs = 5
     # finetune
     for epoch in range(f_num_epochs):
-        train_loss, train_acc, val_loss, val_acc = 0, 0, 0, 0
-
         # train
         new_net.train()
+        train_loss, train_acc = 0, 0
         for i, (images, labels) in enumerate(train_loader):
-            # view()での変換をしない
             images, labels = images.to(device), labels.to(device)
-
             optimizer.zero_grad()
             outputs = new_net(images)
             loss = criterion(outputs, labels)
@@ -103,18 +88,17 @@ while count < 21:
             train_acc += (outputs.max(1)[1] == labels).sum().item()
             loss.backward()
             optimizer.step()
-            # 枝刈り本体
             with torch.no_grad():
                 for j, dense in enumerate(dense_list):
-                    dense.weight.data *= torch.tensor(save_mask[j], device=device, dtype=dtype)
+                    dense.weight.data *= torch.tensor(de_mask[j].mask, device=device, dtype=dtype)
 
         avg_train_loss, avg_train_acc = train_loss / len(train_loader.dataset), train_acc / len(train_loader.dataset)
 
         # val
         new_net.eval()
+        val_loss, val_acc = 0, 0
         with torch.no_grad():
             for images, labels in test_loader:
-                # view()での変換をしない
                 images, labels = images.to(device), labels.to(device)
                 outputs = new_net(images)
                 loss = criterion(outputs, labels)
@@ -122,7 +106,7 @@ while count < 21:
                 val_acc += (outputs.max(1)[1] == labels).sum().item()
         avg_val_loss, avg_val_acc = val_loss / len(test_loader.dataset), val_acc / len(test_loader.dataset)
 
-        print(f'Epoch [{epoch + 1}/{f_num_epochs}], Loss: {avg_train_loss:.4f}, train_acc: {avg_train_acc:.4f}, '
+        print(f'epoch [{epoch + 1}/{f_num_epochs}], train_loss: {avg_train_loss:.4f}, train_acc: {avg_train_acc:.4f}, '
               f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
 
 # パラメータの保存

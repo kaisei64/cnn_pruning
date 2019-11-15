@@ -10,7 +10,7 @@ class DenseMaskGenerator:
 
     def generate_mask(self, x, prune_ratio):
         self.prune_ratio = prune_ratio
-        sub_x = x.cpu().numpy()
+        sub_x = x.cpu().detach().numpy()
         self.mask = np.where(np.abs(sub_x) <= self.prune_ratio, 0, 1)
         return self.mask
 
