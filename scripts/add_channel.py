@@ -8,7 +8,7 @@ import torch.nn as nn
 import cloudpickle
 
 # パラメータ利用
-with open('CIFAR10_conv_prune.pkl', 'rb') as f:
+with open('./result/CIFAR10_conv_prune.pkl', 'rb') as f:
     new_net = cloudpickle.load(f)
 # 畳み込み層のリスト
 conv_list = [new_net.features[i] for i in range(len(new_net.features)) if isinstance(new_net.features[i], nn.Conv2d)]

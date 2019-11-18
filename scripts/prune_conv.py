@@ -14,7 +14,7 @@ import time
 
 data = {'epoch': [], 'time': [], 'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
 # パラメータ利用, 全結合パラメータの凍結
-with open('CIFAR10_original_train.pkl', 'rb') as f:
+with open('./result/CIFAR10_original_train.pkl', 'rb') as f:
     new_net = cloudpickle.load(f)
 for param in new_net.classifier.parameters():
     param.requires_grad = False
@@ -104,8 +104,8 @@ for count in range(1, inv_prune_ratio):
         data['val_loss'].append(val_loss)
         data['val_acc'].append(avg_val_acc)
         df = pd.DataFrame.from_dict(data)
-        df.to_csv('ch_prune_result.csv')
+        df.to_csv('./result/ch_prune_result.csv')
 
 # パラメータの保存
-# with open('CIFAR10_conv_prune.pkl', 'wb') as f:
-#     cloudpickle.dump(new_net, f)
+with open('./result/CIFAR10_conv_prune.pkl', 'wb') as f:
+    cloudpickle.dump(new_net, f)

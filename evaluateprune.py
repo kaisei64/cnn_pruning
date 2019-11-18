@@ -10,7 +10,7 @@ import numpy as np
 import cloudpickle
 
 # 枝刈り前パラメータ利用
-with open('CIFAR10_original_train.pkl', 'rb') as f:
+with open('./result/CIFAR10_original_train.pkl', 'rb') as f:
     original_net = cloudpickle.load(f)
 # 畳み込み層のリスト
 original_conv_list = [original_net.features[i] for i in range(len(original_net.features)) if
@@ -26,7 +26,7 @@ class EvaluatePrune:
 
     def train(self, gene, g_count, conv_num):
         # 枝刈り後パラメータ利用
-        with open('CIFAR10_conv_prune.pkl', 'rb') as f:
+        with open('./result/CIFAR10_conv_prune.pkl', 'rb') as f:
             self.network = cloudpickle.load(f)
         for param in self.network.classifier.parameters():
             param.requires_grad = False
@@ -60,9 +60,8 @@ class EvaluatePrune:
                                 break
 
         # パラメータの割合
-        weight_ratio = [
-            np.count_nonzero(conv.weight.cpu().detach().numpy()) / np.size(conv.weight.cpu().detach().numpy())
-            for conv in conv_list]
+        weight_ratio = [np.count_nonzero(conv.weight.cpu().detach().numpy()) /
+                        np.size(conv.weight.cpu().detach().numpy()) for conv in conv_list]
 
         # 枝刈り後のチャネル数
         channel_num_new = [conv_list[i].out_channels - ch_mask[i].channel_number(conv.weight) for i, conv in

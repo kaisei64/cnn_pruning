@@ -61,8 +61,8 @@ for epoch in range(num_epochs):
     data['val_loss'].append(val_loss)
     data['val_acc'].append(avg_val_acc)
     df = pd.DataFrame.from_dict(data)
-    df.to_csv('result.csv')
+    df.to_csv('./result/result.csv')
 
 # パラメータの保存
-with open('CIFAR10_original_train.pkl', 'wb') as f:
+with open('./result/CIFAR10_original_train.pkl', 'wb') as f:
     cloudpickle.dump(net, f)

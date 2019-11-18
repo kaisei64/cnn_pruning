@@ -15,7 +15,7 @@ device = 'cuda'
 dtype = torch.float
 
 # パラメータ利用, 全結合パラメータの凍結
-with open('CIFAR10_original_train.pkl', 'rb') as f:
+with open('./result/CIFAR10_original_train.pkl', 'rb') as f:
     new_net = cloudpickle.load(f)
 for param in new_net.features.parameters():
     param.requires_grad = False
@@ -105,5 +105,5 @@ for count in range(1, inv_prune_ratio):
               f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
 
 # パラメータの保存
-# with open('CIFAR10_dense_prune.pkl', 'wb') as f:
+# with open('./result/CIFAR10_dense_prune.pkl', 'wb') as f:
 #     cloudpickle.dump(new_net, f)
