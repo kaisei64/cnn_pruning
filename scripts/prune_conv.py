@@ -26,10 +26,10 @@ conv_list = [new_net.features[i] for i in range(len(new_net.features)) if isinst
 conv_count = len(conv_list)
 # マスクのオブジェクト
 ch_mask = [ChannelMaskGenerator() for _ in range(conv_count)]
-inv_prune_ratio = 10
+inv_prune_ratio = 5
 
 # channel_pruning
-for count in range(1, inv_prune_ratio):
+for count in range(1, inv_prune_ratio+1):
     print(f'\nchannel pruning: {count}')
     # ノルムの合計を保持
     channel_l1norm_for_each_layer = [list() for _ in range(conv_count)]
@@ -96,6 +96,7 @@ for count in range(1, inv_prune_ratio):
 
         print(f'epoch [{epoch + 1}/{f_num_epochs}], time: {process_time:.4f}, train_loss: {avg_train_loss:.4f}'
               f', train_acc: {avg_train_acc:.4f}, 'f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
+
         # 結果の保存
         data['epoch'].append(epoch + 1)
         data['time'].append(process_time)

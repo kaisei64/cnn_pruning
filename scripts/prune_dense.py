@@ -9,11 +9,11 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import cloudpickle
+import pandas as pd
+import time
 # from draw_architecture import mydraw
 
-device = 'cuda'
-dtype = torch.float
-
+data = {'epoch': [], 'time': [], 'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
 # パラメータ利用, 全結合パラメータの凍結
 with open('./result/CIFAR10_original_train.pkl', 'rb') as f:
     new_net = cloudpickle.load(f)
@@ -29,10 +29,10 @@ dense_count = len(dense_list)
 
 # マスクのオブジェクト
 de_mask = [DenseMaskGenerator() for _ in dense_list]
-inv_prune_ratio = 10
+inv_prune_ratio = 5
 
 # weight_pruning
-for count in range(1, inv_prune_ratio):
+for count in range(1, inv_prune_ratio+1):
     print(f'\nweight pruning: {count}')
     # 全結合層を可視化
     # if count == 1 or count == 10 or count == 18:
@@ -71,6 +71,7 @@ for count in range(1, inv_prune_ratio):
 
     f_num_epochs = 5
     # finetune
+    start = time.time()
     for epoch in range(f_num_epochs):
         # train
         new_net.train()
@@ -101,9 +102,21 @@ for count in range(1, inv_prune_ratio):
                 val_acc += (outputs.max(1)[1] == labels).sum().item()
         avg_val_loss, avg_val_acc = val_loss / len(test_loader.dataset), val_acc / len(test_loader.dataset)
 
+        process_time = time.time() - start
+
         print(f'epoch [{epoch + 1}/{f_num_epochs}], train_loss: {avg_train_loss:.4f}, train_acc: {avg_train_acc:.4f}, '
               f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
 
+        # 結果の保存
+        data['epoch'].append(epoch + 1)
+        data['time'].append(process_time)
+        data['train_loss'].append(avg_train_loss)
+        data['train_acc'].append(avg_train_acc)
+        data['val_loss'].append(val_loss)
+        data['val_acc'].append(avg_val_acc)
+        df = pd.DataFrame.from_dict(data)
+        df.to_csv('./result/de_prune_result.csv')
+
 # パラメータの保存
-# with open('./result/CIFAR10_dense_prune.pkl', 'wb') as f:
-#     cloudpickle.dump(new_net, f)
+with open('./result/CIFAR10_dense_prune.pkl', 'wb') as f:
+    cloudpickle.dump(new_net, f)
