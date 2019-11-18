@@ -45,7 +45,7 @@ class DenseEvaluatePrune:
             for i in range(len(dense_list)):
                 if i == dense_num:
                     for j in range(len(dense_list[i].weight.data.cpu().numpy())):
-                        if np.sum(np.abs(de_mask[i].mask[j])) < 0.001:
+                        if np.all(de_mask[i].mask[j] == 0):
                             de_mask[i].mask[j] = 1
                             dense_list[i].weight.data[j] = torch.tensor(gene, device=device, dtype=dtype)
                             add_count += 1

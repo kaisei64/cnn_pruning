@@ -29,10 +29,10 @@ dense_count = len(dense_list)
 
 # マスクのオブジェクト
 de_mask = [DenseMaskGenerator() for _ in dense_list]
-inv_prune_ratio = 5
+inv_prune_ratio = 20
 
 # weight_pruning
-for count in range(1, inv_prune_ratio+1):
+for count in range(1, inv_prune_ratio):
     print(f'\nweight pruning: {count}')
     # 全結合層を可視化
     # if count == 1 or count == 10 or count == 18:
