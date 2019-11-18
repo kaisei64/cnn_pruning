@@ -14,7 +14,7 @@ with open('./result/CIFAR10_dense_prune.pkl', 'rb') as f:
 dense_list = [new_net.classifier[i] for i in range(len(new_net.classifier)) if isinstance(new_net.classifier[i], nn.Linear)]
 
 ev = DenseEvaluatePrune()
-ga = [PfgaDense(dense.in_features, dense.out_features, i, evaluate_func=ev.evaluate, better_high=True, mutate_rate=0.1)
+ga = [PfgaDense(dense.out_features, i, evaluate_func=ev.evaluate, better_high=True, mutate_rate=0.1)
       for i, dense in enumerate(dense_list)]
 
 while True:

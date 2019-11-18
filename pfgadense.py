@@ -3,10 +3,9 @@ import copy
 
 
 class PfgaDense:
-    def __init__(self, gene_len1, gene_len2, dense_num, evaluate_func=None, better_high=True, mutate_rate=0.05):
+    def __init__(self, gene_len1, dense_num, evaluate_func=None, better_high=True, mutate_rate=0.05):
         self.family = []
         self.gene_len1 = gene_len1
-        self.gene_len2 = gene_len2
         self.evaluate_func = evaluate_func
         self.better_high = better_high
         self.mutate_rate = mutate_rate
@@ -15,7 +14,7 @@ class PfgaDense:
 
     def add_new_population(self):
         new_gene = []
-        a = np.random.rand(self.gene_len1, self.gene_len2)
+        a = np.random.rand(self.gene_len1)
         a_max = np.max(a)
         a_min = np.min(a)
         # -1から+1の範囲に正規化
