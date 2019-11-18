@@ -9,7 +9,7 @@ import torch.optim as optim
 import numpy as np
 import cloudpickle
 
-# パラメータ利用, 全結合パラメータの凍結
+# 枝刈り前パラメータ利用
 with open('CIFAR10_original_train.pkl', 'rb') as f:
     original_net = cloudpickle.load(f)
 
@@ -22,7 +22,7 @@ class EvaluatePrune:
         return self.train(gene, count)
 
     def train(self, gene, g_count):
-        # パラメータ利用
+        # 枝刈り後パラメータ利用
         with open('CIFAR10_conv_prune.pkl', 'rb') as f:
             self.network = cloudpickle.load(f)
         for param in self.network.classifier.parameters():
@@ -53,7 +53,7 @@ class EvaluatePrune:
                         #                    conv_list[1].kernel_size[0],
                         #                    conv_list[1].kernel_size[1]),
                         #     device=device, dtype=dtype)
-                        conv_list[1].weight.data[:, i] = original_net.features[3].weight.data[:, i].clone()
+                        conv_list[1].weight.data[:, [i]] = original_net.features[3].weight.data[:, [i]].clone()
                         add_count = add_count + 1
                         if add_count == 1:
                             print("add_filter_conv1")
