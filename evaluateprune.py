@@ -46,14 +46,9 @@ class EvaluatePrune:
                 for i, j in enumerate(conv_list[0].weight.data.cpu().numpy()):
                     if np.sum(np.abs(ch_mask[0].mask[i])) < 0.001:
                         ch_mask[0].mask[i] = 1
-                        ch_mask[1].mask[:, i] = 1
+                        ch_mask[1].mask[i, :] = 1
                         conv_list[0].weight.data[i] = torch.tensor(gene, device=device, dtype=dtype)
-                        # conv_list[1].weight.data[:, i] = torch.tensor(
-                        #     np.random.rand(conv_list[1].out_channels,
-                        #                    conv_list[1].kernel_size[0],
-                        #                    conv_list[1].kernel_size[1]),
-                        #     device=device, dtype=dtype)
-                        conv_list[1].weight.data[:, [i]] = original_net.features[3].weight.data[:, [i]].clone()
+                        conv_list[1].weight.data[:, i] = original_net.features[3].weight.data[:, i].clone()
                         add_count = add_count + 1
                         if add_count == 1:
                             print("add_filter_conv1")
@@ -64,13 +59,9 @@ class EvaluatePrune:
                 for i, j in enumerate(conv_list[1].weight.data.cpu().numpy()):
                     if np.sum(np.abs(ch_mask[1].mask[i])) < 0.001:
                         ch_mask[1].mask[i] = 1
-                        ch_mask[2].mask[:, i] = 1
+                        ch_mask[2].mask[i, :] = 1
                         conv_list[1].weight.data[i] = torch.tensor(gene, device=device, dtype=dtype)
-                        conv_list[2].weight.data[:, i] = torch.tensor(
-                            np.random.rand(conv_list[2].out_channels,
-                                           conv_list[2].kernel_size[0],
-                                           conv_list[2].kernel_size[1]),
-                            device=device, dtype=dtype)
+                        conv_list[2].weight.data[:, i] = original_net.features[6].weight.data[:, i].clone()
                         add_count = add_count + 1
                         if add_count == 1:
                             print("add_filter_conv2")
@@ -81,13 +72,9 @@ class EvaluatePrune:
                 for i, j in enumerate(conv_list[2].weight.data.cpu().numpy()):
                     if np.sum(np.abs(ch_mask[2].mask[i])) < 0.001:
                         ch_mask[2].mask[i] = 1
-                        ch_mask[3].mask[:, i] = 1
+                        ch_mask[3].mask[i, :] = 1
                         conv_list[2].weight.data[i] = torch.tensor(gene, device=device, dtype=dtype)
-                        conv_list[3].weight.data[:, i] = torch.tensor(
-                            np.random.rand(conv_list[3].out_channels,
-                                           conv_list[3].kernel_size[0],
-                                           conv_list[3].kernel_size[1]),
-                            device=device, dtype=dtype)
+                        conv_list[3].weight.data[:, i] = original_net.features[8].weight.data[:, i].clone()
                         add_count = add_count + 1
                         if add_count == 1:
                             print("add_filter_conv3")
@@ -98,13 +85,9 @@ class EvaluatePrune:
                 for i, j in enumerate(conv_list[3].weight.data.cpu().numpy()):
                     if np.sum(np.abs(ch_mask[3].mask[i])) < 0.001:
                         ch_mask[3].mask[i] = 1
-                        ch_mask[4].mask[:, i] = 1
+                        ch_mask[4].mask[i, :] = 1
                         conv_list[3].weight.data[i] = torch.tensor(gene, device=device, dtype=dtype)
-                        conv_list[4].weight.data[:, i] = torch.tensor(
-                            np.random.rand(conv_list[4].out_channels,
-                                           conv_list[4].kernel_size[0],
-                                           conv_list[4].kernel_size[1]),
-                            device=device, dtype=dtype)
+                        conv_list[4].weight.data[:, i] = original_net.features[10].weight.data[:, i].clone()
                         add_count = add_count + 1
                         if add_count == 1:
                             print("add_filter_conv4")
@@ -141,21 +124,21 @@ class EvaluatePrune:
         # finetune
         for epoch in range(f_num_epochs):
             # train
-            self.network.train()
-            train_loss, train_acc = 0, 0
-            for i, (images, labels) in enumerate(train_loader):
-                images, labels = images.to(device), labels.to(device)
-                optimizer.zero_grad()
-                outputs = self.network(images)
-                loss = criterion(outputs, labels)
-                train_loss += loss.item()
-                train_acc += (outputs.max(1)[1] == labels).sum().item()
-                loss.backward()
-                optimizer.step()
-                with torch.no_grad():
-                    for j, conv in enumerate(conv_list):
-                        conv.weight.data *= torch.tensor(ch_mask[j].mask, device=device, dtype=dtype)
-            avg_train_loss, avg_train_acc = train_loss / len(train_loader.dataset), train_acc / len(train_loader.dataset)
+            # self.network.train()
+            # train_loss, train_acc = 0, 0
+            # for i, (images, labels) in enumerate(train_loader):
+            #     images, labels = images.to(device), labels.to(device)
+            #     optimizer.zero_grad()
+            #     outputs = self.network(images)
+            #     loss = criterion(outputs, labels)
+            #     train_loss += loss.item()
+            #     train_acc += (outputs.max(1)[1] == labels).sum().item()
+            #     loss.backward()
+            #     optimizer.step()
+            #     with torch.no_grad():
+            #         for j, conv in enumerate(conv_list):
+            #             conv.weight.data *= torch.tensor(ch_mask[j].mask, device=device, dtype=dtype)
+            # avg_train_loss, avg_train_acc = train_loss / len(train_loader.dataset), train_acc / len(train_loader.dataset)
 
             # val
             self.network.eval()
@@ -170,7 +153,9 @@ class EvaluatePrune:
             avg_val_loss, avg_val_acc = val_loss / len(test_loader.dataset), val_acc / len(test_loader.dataset)
             eva = avg_val_acc
 
+            # print(
+            #     f'epoch [{epoch + 1}/{f_num_epochs}], train_loss: {avg_train_loss:.4f}, train_acc: {avg_train_acc:.4f}'
+            #     f', val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
             print(
-                f'epoch [{epoch + 1}/{f_num_epochs}], train_loss: {avg_train_loss:.4f}, train_acc: {avg_train_acc:.4f}'
-                f', val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
+                f'epoch [{epoch + 1}/{f_num_epochs}], val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
         return eva
