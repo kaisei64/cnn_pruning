@@ -10,7 +10,7 @@ import cloudpickle
 # パラメータ利用
 with open('./result/CIFAR10_dense_prune.pkl', 'rb') as f:
     new_net = cloudpickle.load(f)
-# 畳み込み層のリスト
+# 全結合層のリスト
 dense_list = [new_net.classifier[i] for i in range(len(new_net.classifier)) if isinstance(new_net.classifier[i], nn.Linear)]
 
 ev = DenseEvaluatePrune()

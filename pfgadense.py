@@ -18,6 +18,7 @@ class PfgaDense:
         a = np.random.rand(self.gene_len1, self.gene_len2)
         a_max = np.max(a)
         a_min = np.min(a)
+        # -1から+1の範囲に正規化
         y = 2 * (a - a_min) / (a_max - a_min) - 1
         new_gene.append(y)
         new_gene.append(None)

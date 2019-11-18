@@ -11,7 +11,7 @@ import cloudpickle
 # 枝刈り前パラメータ利用
 with open('./result/CIFAR10_original_train.pkl', 'rb') as f:
     original_net = cloudpickle.load(f)
-# 畳み込み層のリスト
+# 全結合層のリスト
 original_dense_list = [original_net.classifier[i] for i in range(len(original_net.classifier)) if
                        isinstance(original_net.classifier[i], nn.Linear)]
 
@@ -30,7 +30,7 @@ class DenseEvaluatePrune:
         for param in self.network.features.parameters():
             param.requires_grad = False
 
-        # 畳み込み層のリスト
+        # 全結合層のリスト
         dense_list = [self.network.classifier[i] for i in range(len(self.network.classifier))
                       if isinstance(self.network.classifier[i], nn.Linear)]
 
@@ -40,28 +40,25 @@ class DenseEvaluatePrune:
             de_mask[i].mask = np.where(np.abs(dense.weight.data.clone().cpu().detach().numpy()) == 0, 0, 1)
 
         # add
-        # with torch.no_grad():
-        #     add_count = 0
-        #     for i in range(len(conv_list)):
-        #         if i == conv_num:
-        #             for j in range(len(conv_list[i].weight.data.cpu().numpy())):
-        #                 if np.sum(np.abs(ch_mask[i].mask[j])) < 0.001:
-        #                     ch_mask[i].mask[j] = 1
-        #                     conv_list[i].weight.data[j] = torch.tensor(gene, device=device, dtype=dtype)
-        #                     if i != len(conv_list) - 1:
-        #                         ch_mask[i+1].mask[j, :] = 1
-        #                         conv_list[i+1].weight.data[:, j] = original_conv_list[i+1].weight.data[:, j].clone()
-        #                     add_count += 1
-        #                     if add_count == 1:
-        #                         print(f'add_filter_conv{conv_num + 1}')
-        #                         break
+        with torch.no_grad():
+            add_count = 0
+            for i in range(len(dense_list)):
+                if i == dense_num:
+                    for j in range(len(dense_list[i].weight.data.cpu().numpy())):
+                        if np.sum(np.abs(de_mask[i].mask[j])) < 0.001:
+                            de_mask[i].mask[j] = 1
+                            dense_list[i].weight.data[j] = torch.tensor(gene, device=device, dtype=dtype)
+                            add_count += 1
+                            if add_count == 1:
+                                print(f'add_neuron_dense{dense_num + 1}')
+                                break
 
         # パラメータの割合
         weight_ratio = [np.count_nonzero(dense.weight.cpu().detach().numpy()) /
                         np.size(dense.weight.cpu().detach().numpy()) for dense in dense_list]
 
-        # 枝刈り後のチャネル数
-        neuron_num_new = [dense_list[i].out_channels - de_mask[i].neuron_number(dense.weight) for i, dense in
+        # 枝刈り後のニューロン数
+        neuron_num_new = [dense_list[i].in_features - de_mask[i].neuron_number(dense.weight) for i, dense in
                           enumerate(dense_list)]
 
         print(f'parent{g_count + 1}: ') if g_count < 2 else print(f'children{g_count - 1}: ')
