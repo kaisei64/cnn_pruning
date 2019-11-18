@@ -9,6 +9,10 @@ import torch.optim as optim
 import numpy as np
 import cloudpickle
 
+# パラメータ利用, 全結合パラメータの凍結
+with open('CIFAR10_original_train.pkl', 'rb') as f:
+    original_net = cloudpickle.load(f)
+
 
 class EvaluatePrune:
     def __init__(self):
@@ -44,11 +48,12 @@ class EvaluatePrune:
                         ch_mask[0].mask[i] = 1
                         ch_mask[1].mask[:, i] = 1
                         conv_list[0].weight.data[i] = torch.tensor(gene, device=device, dtype=dtype)
-                        conv_list[1].weight.data[:, i] = torch.tensor(
-                            np.random.rand(conv_list[1].out_channels,
-                                           conv_list[1].kernel_size[0],
-                                           conv_list[1].kernel_size[1]),
-                            device=device, dtype=dtype)
+                        # conv_list[1].weight.data[:, i] = torch.tensor(
+                        #     np.random.rand(conv_list[1].out_channels,
+                        #                    conv_list[1].kernel_size[0],
+                        #                    conv_list[1].kernel_size[1]),
+                        #     device=device, dtype=dtype)
+                        conv_list[1].weight.data[:, i] = original_net.features[3].weight.data[:, i].clone()
                         add_count = add_count + 1
                         if add_count == 1:
                             print("add_filter_conv1")
@@ -166,6 +171,6 @@ class EvaluatePrune:
             eva = avg_val_acc
 
             print(
-                f'epoch [{epoch + 1}/{f_num_epochs}], train_loss: {avg_train_loss:.4f}, train_acc: {avg_train_acc:.4f}, '
-                f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
+                f'epoch [{epoch + 1}/{f_num_epochs}], train_loss: {avg_train_loss:.4f}, train_acc: {avg_train_acc:.4f}'
+                f', val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
         return eva
