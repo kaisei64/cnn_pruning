@@ -17,7 +17,7 @@ original_conv_list = [original_net.features[i] for i in range(len(original_net.f
                       isinstance(original_net.features[i], nn.Conv2d)]
 
 
-class EvaluatePrune:
+class CnnEvaluatePrune:
     def __init__(self):
         self.network = None
 

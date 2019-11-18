@@ -3,7 +3,7 @@ import sys
 pardir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(pardir)
 from pfgacnn import PfgaCnn
-from evaluateprune import EvaluatePrune
+from cnn_evaluateprune import CnnEvaluatePrune
 import torch.nn as nn
 import cloudpickle
 
@@ -13,7 +13,7 @@ with open('./result/CIFAR10_conv_prune.pkl', 'rb') as f:
 # 畳み込み層のリスト
 conv_list = [new_net.features[i] for i in range(len(new_net.features)) if isinstance(new_net.features[i], nn.Conv2d)]
 
-ev = EvaluatePrune()
+ev = CnnEvaluatePrune()
 ga = [PfgaCnn(conv.in_channels, conv.kernel_size, i, evaluate_func=ev.evaluate, better_high=True, mutate_rate=0.1)
       for i, conv in enumerate(conv_list)]
 
