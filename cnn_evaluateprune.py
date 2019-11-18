@@ -5,7 +5,6 @@ sys.path.append(pardir)
 from channel_mask_generator import ChannelMaskGenerator
 from dataset import *
 import torch
-# import torch.optim as optim
 import numpy as np
 import cloudpickle
 
@@ -30,8 +29,6 @@ class CnnEvaluatePrune:
             self.network = cloudpickle.load(f)
         for param in self.network.classifier.parameters():
             param.requires_grad = False
-
-        # optimizer = optim.SGD(self.network.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
 
         # 畳み込み層のリスト
         conv_list = [self.network.features[i] for i in range(len(self.network.features)) if
@@ -77,23 +74,6 @@ class CnnEvaluatePrune:
         eva = 0
         # finetune
         for epoch in range(f_num_epochs):
-            # train
-            # self.network.train()
-            # train_loss, train_acc = 0, 0
-            # for i, (images, labels) in enumerate(train_loader):
-            #     images, labels = images.to(device), labels.to(device)
-            #     optimizer.zero_grad()
-            #     outputs = self.network(images)
-            #     loss = criterion(outputs, labels)
-            #     train_loss += loss.item()
-            #     train_acc += (outputs.max(1)[1] == labels).sum().item()
-            #     loss.backward()
-            #     optimizer.step()
-            #     with torch.no_grad():
-            #         for j, conv in enumerate(conv_list):
-            #             conv.weight.data *= torch.tensor(ch_mask[j].mask, device=device, dtype=dtype)
-            # avg_train_loss, avg_train_acc = train_loss / len(train_loader.dataset), train_acc / len(train_loader.dataset)
-
             # val
             self.network.eval()
             val_loss, val_acc = 0, 0
@@ -107,8 +87,5 @@ class CnnEvaluatePrune:
             avg_val_loss, avg_val_acc = val_loss / len(test_loader.dataset), val_acc / len(test_loader.dataset)
             eva = avg_val_acc
 
-            # print(
-            #     f'epoch [{epoch + 1}/{f_num_epochs}], train_loss: {avg_train_loss:.4f}, train_acc: {avg_train_acc:.4f}'
-            #     f', val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
             print(f'epoch [{epoch + 1}/{f_num_epochs}], val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
         return eva
