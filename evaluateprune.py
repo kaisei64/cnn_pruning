@@ -5,30 +5,33 @@ sys.path.append(pardir)
 from channel_mask_generator import ChannelMaskGenerator
 from dataset import *
 import torch
-import torch.optim as optim
+# import torch.optim as optim
 import numpy as np
 import cloudpickle
 
 # 枝刈り前パラメータ利用
 with open('CIFAR10_original_train.pkl', 'rb') as f:
     original_net = cloudpickle.load(f)
+# 畳み込み層のリスト
+original_conv_list = [original_net.features[i] for i in range(len(original_net.features)) if
+                      isinstance(original_net.features[i], nn.Conv2d)]
 
 
 class EvaluatePrune:
     def __init__(self):
         self.network = None
 
-    def evaluate(self, gene, count):
-        return self.train(gene, count)
+    def evaluate(self, gene, count, conv_num):
+        return self.train(gene, count, conv_num)
 
-    def train(self, gene, g_count):
+    def train(self, gene, g_count, conv_num):
         # 枝刈り後パラメータ利用
         with open('CIFAR10_conv_prune.pkl', 'rb') as f:
             self.network = cloudpickle.load(f)
         for param in self.network.classifier.parameters():
             param.requires_grad = False
 
-        optimizer = optim.SGD(self.network.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
+        # optimizer = optim.SGD(self.network.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
 
         # 畳み込み層のリスト
         conv_list = [self.network.features[i] for i in range(len(self.network.features)) if
@@ -42,67 +45,19 @@ class EvaluatePrune:
         # add
         with torch.no_grad():
             add_count = 0
-            if len(gene) == conv_list[0].in_channels:
-                for i, j in enumerate(conv_list[0].weight.data.cpu().numpy()):
-                    if np.sum(np.abs(ch_mask[0].mask[i])) < 0.001:
-                        ch_mask[0].mask[i] = 1
-                        ch_mask[1].mask[i, :] = 1
-                        conv_list[0].weight.data[i] = torch.tensor(gene, device=device, dtype=dtype)
-                        conv_list[1].weight.data[:, i] = original_net.features[3].weight.data[:, i].clone()
-                        add_count = add_count + 1
-                        if add_count == 1:
-                            print("add_filter_conv1")
-                            break
-
-            add_count = 0
-            if len(gene) == conv_list[1].in_channels:
-                for i, j in enumerate(conv_list[1].weight.data.cpu().numpy()):
-                    if np.sum(np.abs(ch_mask[1].mask[i])) < 0.001:
-                        ch_mask[1].mask[i] = 1
-                        ch_mask[2].mask[i, :] = 1
-                        conv_list[1].weight.data[i] = torch.tensor(gene, device=device, dtype=dtype)
-                        conv_list[2].weight.data[:, i] = original_net.features[6].weight.data[:, i].clone()
-                        add_count = add_count + 1
-                        if add_count == 1:
-                            print("add_filter_conv2")
-                            break
-
-            add_count = 0
-            if len(gene) == conv_list[2].in_channels:
-                for i, j in enumerate(conv_list[2].weight.data.cpu().numpy()):
-                    if np.sum(np.abs(ch_mask[2].mask[i])) < 0.001:
-                        ch_mask[2].mask[i] = 1
-                        ch_mask[3].mask[i, :] = 1
-                        conv_list[2].weight.data[i] = torch.tensor(gene, device=device, dtype=dtype)
-                        conv_list[3].weight.data[:, i] = original_net.features[8].weight.data[:, i].clone()
-                        add_count = add_count + 1
-                        if add_count == 1:
-                            print("add_filter_conv3")
-                            break
-
-            add_count = 0
-            if len(gene) == conv_list[3].in_channels:
-                for i, j in enumerate(conv_list[3].weight.data.cpu().numpy()):
-                    if np.sum(np.abs(ch_mask[3].mask[i])) < 0.001:
-                        ch_mask[3].mask[i] = 1
-                        ch_mask[4].mask[i, :] = 1
-                        conv_list[3].weight.data[i] = torch.tensor(gene, device=device, dtype=dtype)
-                        conv_list[4].weight.data[:, i] = original_net.features[10].weight.data[:, i].clone()
-                        add_count = add_count + 1
-                        if add_count == 1:
-                            print("add_filter_conv4")
-                            break
-
-            add_count = 0
-            if len(gene) == conv_list[4].in_channels:
-                for i, j in enumerate(conv_list[4].weight.data.cpu().numpy()):
-                    if np.sum(np.abs(ch_mask[4].mask[i])) < 0.001:
-                        ch_mask[4].mask[i] = 1
-                        conv_list[4].weight.data[i] = torch.tensor(gene, device=device, dtype=dtype)
-                        add_count = add_count + 1
-                        if add_count == 1:
-                            print("add_filter_conv5")
-                            break
+            for i in range(len(conv_list)):
+                if i == conv_num:
+                    for j in range(len(conv_list[i].weight.data.cpu().numpy())):
+                        if np.sum(np.abs(ch_mask[i].mask[j])) < 0.001:
+                            ch_mask[i].mask[j] = 1
+                            conv_list[i].weight.data[j] = torch.tensor(gene, device=device, dtype=dtype)
+                            if i != len(conv_list) - 1:
+                                ch_mask[i+1].mask[j, :] = 1
+                                conv_list[i+1].weight.data[:, j] = original_conv_list[i+1].weight.data[:, j].clone()
+                            add_count += 1
+                            if add_count == 1:
+                                print(f'add_filter_conv{conv_num + 1}')
+                                break
 
         # パラメータの割合
         weight_ratio = [
@@ -113,7 +68,7 @@ class EvaluatePrune:
         channel_num_new = [conv_list[i].out_channels - ch_mask[i].channel_number(conv.weight) for i, conv in
                            enumerate(conv_list)]
 
-        print(f'parent{g_count+1}: ')
+        print(f'parent{g_count + 1}: ') if g_count < 2 else print(f'children{g_count - 1}: ')
         for i in range(len(conv_list)):
             print(f'conv{i + 1}_param: {weight_ratio[i]:.4f}', end=", " if i != len(conv_list) - 1 else "\n")
         for i in range(len(conv_list)):
@@ -156,6 +111,5 @@ class EvaluatePrune:
             # print(
             #     f'epoch [{epoch + 1}/{f_num_epochs}], train_loss: {avg_train_loss:.4f}, train_acc: {avg_train_acc:.4f}'
             #     f', val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
-            print(
-                f'epoch [{epoch + 1}/{f_num_epochs}], val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
+            print(f'epoch [{epoch + 1}/{f_num_epochs}], val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
         return eva

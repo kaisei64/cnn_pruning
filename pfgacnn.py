@@ -2,8 +2,8 @@ import numpy as np
 import copy
 
 
-class PFGA:
-    def __init__(self, gene_len1, gene_len2, evaluate_func=None, better_high=True, mutate_rate=0.05):
+class PfgaCnn:
+    def __init__(self, gene_len1, gene_len2, conv_num, evaluate_func=None, better_high=True, mutate_rate=0.05):
         self.family = []
         self.gene_len1 = gene_len1
         self.gene_len2 = gene_len2
@@ -11,6 +11,7 @@ class PFGA:
         self.better_high = better_high
         self.mutate_rate = mutate_rate
         self.generation_num = 0
+        self.conv_num = conv_num
 
     def add_new_population(self):
         new_gene = []
@@ -78,7 +79,7 @@ class PFGA:
         count = 0
         for i in genelist:
             # if i[1] is None:
-            i[1] = self.evaluate_func(i[0], count)
+            i[1] = self.evaluate_func(i[0], count, self.conv_num)
             count += 1
 
         # rule-1:both child is better than both parent, remain both child and better 1 parent
