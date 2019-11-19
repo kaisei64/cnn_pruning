@@ -12,7 +12,7 @@ import time
 
 net = models.alexnet(num_classes=100).to(device)
 optimizer = optim.SGD(net.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
-num_epochs = 15
+num_epochs = 150
 
 data = {'epoch': [], 'time': [], 'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
 
