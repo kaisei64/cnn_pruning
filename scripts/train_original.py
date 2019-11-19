@@ -2,7 +2,7 @@ import os
 import sys
 pardir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(pardir)
-from dataset import *
+from dataset_cifar100 import *
 import torch
 import torchvision.models as models
 import torch.optim as optim
@@ -10,7 +10,7 @@ import pandas as pd
 import cloudpickle
 import time
 
-net = models.alexnet(num_classes=10).to(device)
+net = models.alexnet(num_classes=100).to(device)
 optimizer = optim.SGD(net.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
 num_epochs = 15
 
@@ -64,5 +64,5 @@ for epoch in range(num_epochs):
     df.to_csv('./result/result.csv')
 
 # パラメータの保存
-with open('./result/CIFAR10_original_train.pkl', 'wb') as f:
+with open('./result/CIFAR100_original_train.pkl', 'wb') as f:
     cloudpickle.dump(net, f)
