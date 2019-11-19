@@ -18,10 +18,10 @@ ga = [PfgaCnn(conv.in_channels, conv.kernel_size, i, evaluate_func=ev.evaluate, 
       for i, conv in enumerate(conv_list)]
 
 while True:
-    ga[0].next_generation()
-    best1 = ga[0].best_gene()
-    if best1 is not None:
-        print('gen1:{} best-value1:{}'.format(ga[0].generation_num, best1[1]))
+    # ga[0].next_generation()
+    # best1 = ga[0].best_gene()
+    # if best1 is not None:
+    #     print('gen1:{} best-value1:{}'.format(ga[0].generation_num, best1[1]))
 
     # ga[1].next_generation()
     # best2 = ga[1].best_gene()
@@ -33,10 +33,10 @@ while True:
     # if best3 is not None:
     #     print('gen3:{} best-value3:{}'.format(ga[2].generation_num, best3[1]))
 
-    # ga[3].next_generation()
-    # best4 = ga[3].best_gene()
-    # if best4 is not None:
-    #     print('gen4:{} best-value4:{}'.format(ga[3].generation_num, best4[1]))
+    ga[3].next_generation()
+    best4 = ga[3].best_gene()
+    if best4 is not None:
+        print('gen4:{} best-value4:{}'.format(ga[3].generation_num, best4[1]))
 
     # ga[4].next_generation()
     # best5 = ga[4].best_gene()

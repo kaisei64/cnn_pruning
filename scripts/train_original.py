@@ -61,7 +61,7 @@ for epoch in range(num_epochs):
     data['val_loss'].append(val_loss)
     data['val_acc'].append(avg_val_acc)
     df = pd.DataFrame.from_dict(data)
-    df.to_csv('./result/result.csv')
+    df.to_csv('./result/result_cifar100.csv')
 
 # パラメータの保存
 with open('./result/CIFAR100_original_train.pkl', 'wb') as f:
