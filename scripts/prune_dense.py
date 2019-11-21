@@ -69,7 +69,7 @@ for count in range(1, inv_prune_ratio):
     for i in range(len(dense_list)):
         print(f'neuron_number{i+1}: {neuron_num_new[i]}', end=", " if i != dense_count - 1 else "\n"if i != dense_count - 1 else "\n")
 
-    f_num_epochs = 3
+    f_num_epochs = 5
     # finetune
     start = time.time()
     for epoch in range(f_num_epochs):

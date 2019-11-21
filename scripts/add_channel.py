@@ -31,15 +31,13 @@ for i, conv in enumerate(conv_list):
 ev = CnnEvaluatePrune()
 ga = [PfgaCnn(conv.in_channels, conv.kernel_size, i, evaluate_func=ev.evaluate, better_high=True, mutate_rate=0.1)
       for i, conv in enumerate(conv_list)]
+best = [list() for _ in range(len(ga))]
 
-generation_num = 100
-for _ in range(generation_num):
+while ga[0].generation_num < 100:
     ga[0].next_generation()
-    best1 = ga[0].best_gene()
-    if best1 is not None:
-        print('gen1:{} best-value1:{}'.format(ga[0].generation_num, best1[1]))
-        print(ga[0])
-        print(ga[1])
+    best[0] = ga[0].best_gene()
+    if best[0] is not None:
+        print(f'gen1:{ga[0].generation_num} best-value1:{best[0][1]}\n')
 # 追加
 with torch.no_grad():
     add_count = 0
@@ -47,7 +45,7 @@ with torch.no_grad():
     for j in range(len(conv_list[i].weight.data.cpu().numpy())):
         if np.sum(np.abs(ch_mask[i].mask[j])) < 0.001:
             ch_mask[i].mask[j] = 1
-            conv_list[i].weight.data[j] = torch.tensor(ga[0], device=device, dtype=dtype)
+            conv_list[i].weight.data[j] = torch.tensor(best[0][0], device=device, dtype=dtype)
             if i != len(conv_list) - 1:
                 ch_mask[i + 1].mask[j, :] = 1
                 conv_list[i + 1].weight.data[:, j] = original_conv_list[i + 1].weight.data[:, j].clone()

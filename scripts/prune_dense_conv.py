@@ -61,7 +61,7 @@ for count in range(1, inv_prune_ratio):
     for i in range(len(conv_list)):
         print(f'channel_number{i + 1}: {channel_num_new[i]}', end=", " if i != conv_count - 1 else "\n")
 
-    f_num_epochs = 3
+    f_num_epochs = 5
     # finetune
     start = time.time()
     for epoch in range(f_num_epochs):
