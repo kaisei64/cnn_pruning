@@ -41,22 +41,20 @@ class CnnEvaluatePrune:
         for i, conv in enumerate(conv_list):
             ch_mask[i].mask = np.where(np.abs(conv.weight.data.clone().cpu().detach().numpy()) == 0, 0, 1)
 
-        # add
+        # 追加
         with torch.no_grad():
             add_count = 0
-            for i in range(len(conv_list)):
-                if i == conv_num:
-                    for j in range(len(conv_list[i].weight.data.cpu().numpy())):
-                        if np.sum(np.abs(ch_mask[i].mask[j])) < 0.001:
-                            ch_mask[i].mask[j] = 1
-                            conv_list[i].weight.data[j] = torch.tensor(gene, device=device, dtype=dtype)
-                            if i != len(conv_list) - 1:
-                                ch_mask[i+1].mask[j, :] = 1
-                                conv_list[i+1].weight.data[:, j] = original_conv_list[i+1].weight.data[:, j].clone()
-                            add_count += 1
-                            if add_count == 1:
-                                print(f'add_filter_conv{conv_num + 1}')
-                                break
+            for j in range(len(conv_list[conv_num].weight.data.cpu().numpy())):
+                if np.sum(np.abs(ch_mask[conv_num].mask[j])) < 0.001:
+                    ch_mask[conv_num].mask[j] = 1
+                    conv_list[conv_num].weight.data[j] = torch.tensor(gene, device=device, dtype=dtype)
+                    if conv_num != len(conv_list) - 1:
+                        ch_mask[conv_num + 1].mask[j, :] = 1
+                        conv_list[conv_num + 1].weight.data[:, j] = original_conv_list[conv_num + 1].weight.data[:, j].clone()
+                    add_count += 1
+                    if add_count == 1:
+                        print(f'add_filter_conv{conv_num + 1}')
+                        break
 
         # パラメータの割合
         weight_ratio = [np.count_nonzero(conv.weight.cpu().detach().numpy()) /
