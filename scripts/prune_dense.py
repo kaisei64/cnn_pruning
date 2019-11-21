@@ -29,7 +29,7 @@ dense_count = len(dense_list)
 
 # マスクのオブジェクト
 de_mask = [DenseMaskGenerator() for _ in dense_list]
-inv_prune_ratio = 20
+inv_prune_ratio = 50
 
 # weight_pruning
 for count in range(1, inv_prune_ratio):
