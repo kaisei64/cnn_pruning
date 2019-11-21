@@ -8,7 +8,7 @@ import torch.nn as nn
 import cloudpickle
 
 # パラメータ利用
-with open('./result/CIFAR10_conv_prune.pkl', 'rb') as f:
+with open('./result/CIFAR10_dense_conv_prune.pkl', 'rb') as f:
     new_net = cloudpickle.load(f)
 # 畳み込み層のリスト
 conv_list = [new_net.features[i] for i in range(len(new_net.features)) if isinstance(new_net.features[i], nn.Conv2d)]
@@ -28,15 +28,15 @@ while True:
     # if best2 is not None:
     #     print('gen2:{} best-value2:{}'.format(ga[1].generation_num, best2[1]))
 
-    # ga[2].next_generation()
-    # best3 = ga[2].best_gene()
-    # if best3 is not None:
-    #     print('gen3:{} best-value3:{}'.format(ga[2].generation_num, best3[1]))
+    ga[2].next_generation()
+    best3 = ga[2].best_gene()
+    if best3 is not None:
+        print('gen3:{} best-value3:{}'.format(ga[2].generation_num, best3[1]))
 
-    ga[3].next_generation()
-    best4 = ga[3].best_gene()
-    if best4 is not None:
-        print('gen4:{} best-value4:{}'.format(ga[3].generation_num, best4[1]))
+    # ga[3].next_generation()
+    # best4 = ga[3].best_gene()
+    # if best4 is not None:
+    #     print('gen4:{} best-value4:{}'.format(ga[3].generation_num, best4[1]))
 
     # ga[4].next_generation()
     # best5 = ga[4].best_gene()

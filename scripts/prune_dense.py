@@ -3,7 +3,7 @@ import sys
 pardir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(pardir)
 from dense_mask_generator import DenseMaskGenerator
-from dataset_cifar100 import *
+from dataset import *
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -15,7 +15,7 @@ import time
 
 data = {'epoch': [], 'time': [], 'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
 # パラメータ利用, 全結合パラメータの凍結
-with open('./result/CIFAR100_original_train.pkl', 'rb') as f:
+with open('./result/CIFAR10_original_train.pkl', 'rb') as f:
     new_net = cloudpickle.load(f)
 for param in new_net.features.parameters():
     param.requires_grad = False
@@ -29,7 +29,7 @@ dense_count = len(dense_list)
 
 # マスクのオブジェクト
 de_mask = [DenseMaskGenerator() for _ in dense_list]
-inv_prune_ratio = 10
+inv_prune_ratio = 20
 
 # weight_pruning
 for count in range(1, inv_prune_ratio):
@@ -69,7 +69,7 @@ for count in range(1, inv_prune_ratio):
     for i in range(len(dense_list)):
         print(f'neuron_number{i+1}: {neuron_num_new[i]}', end=", " if i != dense_count - 1 else "\n"if i != dense_count - 1 else "\n")
 
-    f_num_epochs = 5
+    f_num_epochs = 3
     # finetune
     start = time.time()
     for epoch in range(f_num_epochs):
@@ -115,8 +115,8 @@ for count in range(1, inv_prune_ratio):
         data['val_loss'].append(val_loss)
         data['val_acc'].append(avg_val_acc)
         df = pd.DataFrame.from_dict(data)
-        df.to_csv('./result/de_prune_result_cifar100.csv')
+        df.to_csv('./result/de_prune_result_cifar10.csv')
 
 # パラメータの保存
-with open('./result/CIFAR100_dense_prune.pkl', 'wb') as f:
+with open('./result/CIFAR10_dense_prune.pkl', 'wb') as f:
     cloudpickle.dump(new_net, f)

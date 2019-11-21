@@ -18,6 +18,8 @@ with open('./result/CIFAR10_dense_prune.pkl', 'rb') as f:
     new_net = cloudpickle.load(f)
 for param in new_net.classifier.parameters():
     param.requires_grad = False
+for param in new_net.features.parameters():
+    param.requires_grad = True
 
 optimizer = optim.SGD(new_net.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
 
@@ -26,10 +28,10 @@ conv_list = [new_net.features[i] for i in range(len(new_net.features)) if isinst
 conv_count = len(conv_list)
 # マスクのオブジェクト
 ch_mask = [ChannelMaskGenerator() for _ in range(conv_count)]
-inv_prune_ratio = 5
+inv_prune_ratio = 20
 
 # channel_pruning
-for count in range(1, inv_prune_ratio+1):
+for count in range(1, inv_prune_ratio):
     print(f'\nchannel pruning: {count}')
     # ノルムの合計を保持
     channel_l1norm_for_each_layer = [list() for _ in range(conv_count)]
@@ -59,7 +61,7 @@ for count in range(1, inv_prune_ratio+1):
     for i in range(len(conv_list)):
         print(f'channel_number{i + 1}: {channel_num_new[i]}', end=", " if i != conv_count - 1 else "\n")
 
-    f_num_epochs = 5
+    f_num_epochs = 3
     # finetune
     start = time.time()
     for epoch in range(f_num_epochs):
