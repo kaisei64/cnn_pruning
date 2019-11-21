@@ -10,7 +10,6 @@ import torch.optim as optim
 import numpy as np
 import cloudpickle
 import pandas as pd
-import math
 import time
 
 data = {'epoch': [], 'time': [], 'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
@@ -45,7 +44,7 @@ for count in range(1, inv_prune_ratio):
     # 枝刈り本体
     with torch.no_grad():
         for i in range(len(conv_list)):
-            threshold = channel_l1norm_for_each_layer[i][int(math.ceil(conv_list[i].out_channels / inv_prune_ratio) * count) - 1]
+            threshold = channel_l1norm_for_each_layer[i][int(conv_list[i].out_channels / inv_prune_ratio * count) - 1]
             save_mask = ch_mask[i].generate_mask(conv_list[i].weight.data.clone(),
                                                  None if i == 0 else conv_list[i - 1].weight.data.clone(), threshold)
             conv_list[i].weight.data *= torch.tensor(save_mask, device=device, dtype=dtype)
