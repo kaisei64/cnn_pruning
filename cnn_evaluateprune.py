@@ -7,7 +7,7 @@ from dataset import *
 import torch
 import numpy as np
 import cloudpickle
-import torch.optim as optim
+# import torch.optim as optim
 
 # 枝刈り前パラメータ利用
 with open('./result/CIFAR10_original_train.pkl', 'rb') as f:

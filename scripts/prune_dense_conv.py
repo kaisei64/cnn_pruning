@@ -28,7 +28,7 @@ conv_list = [new_net.features[i] for i in range(len(new_net.features)) if isinst
 conv_count = len(conv_list)
 # マスクのオブジェクト
 ch_mask = [ChannelMaskGenerator() for _ in range(conv_count)]
-inv_prune_ratio = 20
+inv_prune_ratio = 10
 
 # channel_pruning
 for count in range(1, inv_prune_ratio):
@@ -111,4 +111,8 @@ for count in range(1, inv_prune_ratio):
 
 # パラメータの保存
 with open('./result/CIFAR10_dense_conv_prune.pkl', 'wb') as f:
+    cloudpickle.dump(new_net, f)
+
+# パラメータの保存
+with open('./result/CIFAR10_dense_conv_prune_copy.pkl', 'wb') as f:
     cloudpickle.dump(new_net, f)
