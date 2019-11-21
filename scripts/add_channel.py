@@ -38,6 +38,7 @@ while ga[0].generation_num < 50:
     best[0] = ga[0].best_gene()
     if best[0] is not None:
         print(f'gen1:{ga[0].generation_num} best-value1:{best[0][1]}\n')
+        print(best[0][0])
 # 追加
 with torch.no_grad():
     add_count = 0
@@ -57,10 +58,11 @@ with torch.no_grad():
 with open('./result/CIFAR10_dense_conv_prune.pkl', 'wb') as f:
     cloudpickle.dump(new_net, f)
 
-    # ga[1].next_generation()
-    # best2 = ga[1].best_gene()
-    # if best2 is not None:
-    #     print('gen2:{} best-value2:{}'.format(ga[1].generation_num, best2[1]))
+# while ga[1].generation_num < 50:
+#     ga[1].next_generation()
+#     best[1] = ga[1].best_gene()
+#     if best[1] is not None:
+#         print('gen2:{} best-value2:{}'.format(ga[1].generation_num, best[1][1]))
 
     # ga[2].next_generation()
     # best3 = ga[2].best_gene()
