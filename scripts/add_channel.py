@@ -54,5 +54,5 @@ for i in range(len(ga)):
                 if add_count == 1:
                     break
     # パラメータの保存
-    # with open('./result/CIFAR10_dense_conv_prune.pkl', 'wb') as f:
-    #     cloudpickle.dump(new_net, f)
+    with open('./result/CIFAR10_dense_conv_prune.pkl', 'wb') as f:
+        cloudpickle.dump(new_net, f)
