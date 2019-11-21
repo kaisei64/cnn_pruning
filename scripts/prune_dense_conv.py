@@ -54,11 +54,11 @@ for count in range(1, inv_prune_ratio):
                     for conv in conv_list]
 
     # 枝刈り後のチャネル数
-    channel_num_new = [conv_list[i].out_channels - ch_mask[i].channel_number(conv.weight) for i, conv in enumerate(conv_list)]
+    channel_num_new = [conv.out_channels - ch_mask[i].channel_number(conv.weight) for i, conv in enumerate(conv_list)]
 
     for i in range(conv_count):
         print(f'conv{i + 1}_param: {weight_ratio[i]:.4f}', end=", " if i != conv_count - 1 else "\n")
-    for i in range(len(conv_list)):
+    for i in range(conv_count):
         print(f'channel_number{i + 1}: {channel_num_new[i]}', end=", " if i != conv_count - 1 else "\n")
 
     f_num_epochs = 5
