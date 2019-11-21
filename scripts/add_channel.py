@@ -33,7 +33,7 @@ ga = [PfgaCnn(conv.in_channels, conv.kernel_size, i, evaluate_func=ev.evaluate, 
       for i, conv in enumerate(conv_list)]
 best = [list() for _ in range(len(ga))]
 
-while ga[0].generation_num < 100:
+while ga[0].generation_num < 50:
     ga[0].next_generation()
     best[0] = ga[0].best_gene()
     if best[0] is not None:
