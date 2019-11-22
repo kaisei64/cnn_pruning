@@ -44,7 +44,7 @@ for i in range(len(ga)):
     with torch.no_grad():
         add_count = 0
         for j in range(len(conv_list[i].weight.data.cpu().numpy())):
-            if np.sum(np.abs(ch_mask[i].mask[j])) < 0.001:
+            if np.sum(np.abs(ch_mask[i].mask[j])) < 26:
                 ch_mask[i].mask[j] = 1
                 conv_list[i].weight.data[j] = torch.tensor(best[i][0], device=device, dtype=dtype)
                 if i != len(conv_list) - 1:
