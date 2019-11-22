@@ -14,14 +14,14 @@ import cloudpickle
 # 枝刈り前パラメータ利用
 with open('./result/CIFAR10_original_train.pkl', 'rb') as f:
     original_net = cloudpickle.load(f)
-# 枝刈り前の畳み込み層のリスト
+# 枝刈り前畳み込み層のリスト
 original_conv_list = [original_net.features[i] for i in range(len(original_net.features)) if
                       isinstance(original_net.features[i], nn.Conv2d)]
 
 # 枝刈り後パラメータ利用
 with open('./result/CIFAR10_dense_conv_prune.pkl', 'rb') as f:
     new_net = cloudpickle.load(f)
-# 畳み込み層のリスト
+# 枝刈り後畳み込み層のリスト
 conv_list = [new_net.features[i] for i in range(len(new_net.features)) if isinstance(new_net.features[i], nn.Conv2d)]
 # マスクのオブジェクト
 ch_mask = [ChannelMaskGenerator() for _ in range(len(conv_list))]
