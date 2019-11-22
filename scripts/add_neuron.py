@@ -2,9 +2,13 @@ import os
 import sys
 pardir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(pardir)
+from dense_mask_generator import DenseMaskGenerator
+from dataset import *
 from pfgadense import PfgaDense
 from dense_evaluateprune import DenseEvaluatePrune
+import torch
 import torch.nn as nn
+import numpy as np
 import cloudpickle
 
 # パラメータ利用
@@ -13,22 +17,34 @@ with open('./result/CIFAR10_dense_prune.pkl', 'rb') as f:
 # 全結合層のリスト
 dense_list = [new_net.classifier[i] for i in range(len(new_net.classifier)) if isinstance(new_net.classifier[i], nn.Linear)]
 
-ev = DenseEvaluatePrune()
-ga = [PfgaDense(dense.out_features, i, evaluate_func=ev.evaluate, better_high=True, mutate_rate=0.1)
+# マスクのオブジェクト
+de_mask = [DenseMaskGenerator() for _ in range(len(dense_list))]
+for i, dense in enumerate(dense_list):
+    de_mask[i].mask = np.where(np.abs(dense.weight.data.clone().cpu().detach().numpy()) == 0, 0, 1)
+
+ev = [DenseEvaluatePrune() for _ in range(len(dense_list))]
+ga = [PfgaDense(dense.out_features, i, evaluate_func=ev[i].evaluate, better_high=True, mutate_rate=0.1)
       for i, dense in enumerate(dense_list)]
+best = [list() for _ in range(len(ga))]
+max_gen = 50
 
-while True:
-    ga[0].next_generation()
-    best1 = ga[0].best_gene()
-    if best1 is not None:
-        print('gen1:{} best-value1:{}'.format(ga[0].generation_num, best1[1]))
+for i in range(len(ga)):
+    while ga[i].generation_num < max_gen:
+        ga[i].next_generation()
+        best[i] = ga[i].best_gene()
+        if best[i] is not None:
+            print(f'gen1:{ga[i].generation_num} best-value1:{best[i][1]}\n')
+    # 層ごとに１ニューロンごと追加
+    with torch.no_grad():
+        add_count = 0
+        for j in range(len(dense_list[i].weight.data.cpu().numpy())):
+            if np.all(de_mask[i].mask[:, j] == 0):
+                de_mask[i].mask[:, j] = 1
+                dense_list[i].weight.data[:, j] = torch.tensor(best[i][0], device=device, dtype=dtype)
+                add_count += 1
+                if add_count == 1:
+                    break
 
-    # ga[1].next_generation()
-    # best2 = ga[1].best_gene()
-    # if best2 is not None:
-    #     print('gen2:{} best-value2:{}'.format(ga[1].generation_num, best2[1]))
-
-    # ga[2].next_generation()
-    # best3 = ga[2].best_gene()
-    # if best3 is not None:
-    #     print('gen3:{} best-value3:{}'.format(ga[2].generation_num, best3[1]))
+    # パラメータの保存
+    # with open('./result/CIFAR10_dense_conv_prune.pkl', 'wb') as f:
+    #     cloudpickle.dump(new_net, f)

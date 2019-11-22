@@ -14,7 +14,7 @@ import cloudpickle
 # 枝刈り前パラメータ利用
 with open('./result/CIFAR10_original_train.pkl', 'rb') as f:
     original_net = cloudpickle.load(f)
-# 畳み込み層のリスト
+# 枝刈り前の畳み込み層のリスト
 original_conv_list = [original_net.features[i] for i in range(len(original_net.features)) if
                       isinstance(original_net.features[i], nn.Conv2d)]
 
@@ -28,8 +28,8 @@ ch_mask = [ChannelMaskGenerator() for _ in range(len(conv_list))]
 for i, conv in enumerate(conv_list):
     ch_mask[i].mask = np.where(np.abs(conv.weight.data.clone().cpu().detach().numpy()) == 0, 0, 1)
 
-ev = CnnEvaluatePrune()
-ga = [PfgaCnn(conv.in_channels, conv.kernel_size, i, evaluate_func=ev.evaluate, better_high=True, mutate_rate=0.1)
+ev = [CnnEvaluatePrune() for _ in range(len(conv_list))]
+ga = [PfgaCnn(conv.in_channels, conv.kernel_size, i, evaluate_func=ev[i].evaluate, better_high=True, mutate_rate=0.1)
       for i, conv in enumerate(conv_list)]
 best = [list() for _ in range(len(ga))]
 max_gen = 50
