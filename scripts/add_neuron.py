@@ -33,7 +33,7 @@ for i in range(len(ga)):
         ga[i].next_generation()
         best[i] = ga[i].best_gene()
         if best[i] is not None:
-            print(f'gen1:{ga[i].generation_num} best-value1:{best[i][1]}\n')
+            print(f'gen{i + 1}:{ga[i].generation_num} best-value{i + 1}:{best[i][1]}\n')
     # 層ごとに１ニューロンごと追加
     with torch.no_grad():
         add_count = 0
