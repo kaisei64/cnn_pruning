@@ -2,7 +2,7 @@ import os
 import sys
 pardir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(pardir)
-from dataset_cifar100 import *
+from dataset import *
 import torch
 import torchvision.models as models
 import torch.optim as optim
@@ -61,8 +61,8 @@ for epoch in range(num_epochs):
     data['val_loss'].append(val_loss)
     data['val_acc'].append(avg_val_acc)
     df = pd.DataFrame.from_dict(data)
-    df.to_csv('./result/result_cifar100.csv')
+    df.to_csv('./result/result_cifar10.csv')
 
 # パラメータの保存
-with open('./result/CIFAR100_original_train.pkl', 'wb') as f:
+with open('./result/CIFAR10_original_train.pkl', 'wb') as f:
     cloudpickle.dump(net, f)
