@@ -6,8 +6,11 @@ from channel_mask_generator import ChannelMaskGenerator
 from dataset import *
 import torch
 import numpy as np
+import pandas as pd
 import cloudpickle
 # import torch.optim as optim
+
+data = {'attribute': [], 'val_acc': []}
 
 # 枝刈り前パラメータ利用
 with open('./result/CIFAR10_original_train.pkl', 'rb') as f:
@@ -45,7 +48,7 @@ class CnnEvaluatePrune:
         with torch.no_grad():
             add_count = 0
             for j in range(len(conv_list[conv_num].weight.data.cpu().numpy())):
-                if np.sum(np.abs(ch_mask[conv_num].mask[j])) < 0.001:
+                if np.sum(np.abs(ch_mask[conv_num].mask[j])) < 26:
                     ch_mask[conv_num].mask[j] = 1
                     conv_list[conv_num].weight.data[j] = torch.tensor(gene, device=device, dtype=dtype)
                     if conv_num != len(conv_list) - 1:
@@ -109,4 +112,12 @@ class CnnEvaluatePrune:
             print(f'epoch [{epoch + 1}/{f_num_epochs}], val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}\n')
             # print(f'epoch [{epoch + 1}/{f_num_epochs}], train_loss: {avg_train_loss:.4f}'
             #       f', train_acc: {avg_train_acc:.4f}, 'f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
+
+            # 結果の保存
+            # data['attribute'].append(f'parent{g_count + 1} ') if g_count < 2 else print(f'childr{g_count - 1} ')
+            data['attribute'].append(g_count)
+            data['val_acc'].append(avg_val_acc)
+            df = pd.DataFrame.from_dict(data)
+            df.to_csv('./result/result_add_channels.csv')
+
         return eva
