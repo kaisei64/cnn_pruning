@@ -30,15 +30,11 @@ ch_mask = [ChannelMaskGenerator() for _ in range(len(conv_list))]
 for i, conv in enumerate(conv_list):
     ch_mask[i].mask = np.where(np.abs(conv.weight.data.clone().cpu().detach().numpy()) == 0, 0, 1)
 
-ev = [CnnEvaluatePrune() for _ in range(len(conv_list))]
-ga = [PfgaCnn(conv.in_channels, conv.kernel_size, i, evaluate_func=ev[i].evaluate, better_high=True, mutate_rate=0.1)
-      for i, conv in enumerate(conv_list)]
-best = [list() for _ in range(len(ga))]
 max_gen = 100
 add_channel_num = 10
 
 # 追加前重み分布の描画
-for i in range(len(ga)):
+for i in range(len(conv_list)):
     before_weight = [np.sum(conv_list[i].weight.data[k].cpu().detach().numpy()) for k
                      in range(len(conv_list[i].weight.data.cpu().numpy()))]
     sns.set_style("darkgrid")
@@ -47,6 +43,10 @@ for i in range(len(ga)):
     before_sns_plot.figure.clear()
 
 for count in range(add_channel_num):
+    ev = [CnnEvaluatePrune() for _ in range(len(conv_list))]
+    ga = [PfgaCnn(conv.in_channels, conv.kernel_size, i,
+                  evaluate_func=ev[i].evaluate, better_high=True, mutate_rate=0.1) for i, conv in enumerate(conv_list)]
+    best = [list() for _ in range(len(ga))]
     for i in range(len(ga)):
         while ga[i].generation_num < max_gen:
             ga[i].next_generation()
@@ -58,7 +58,7 @@ for count in range(add_channel_num):
         with torch.no_grad():
             add_count = 0
             for j in range(len(conv_list[i].weight.data.cpu().numpy())):
-                if np.sum(np.abs(ch_mask[i].mask[j])) < 25 * add_channel_num + 1:
+                if np.sum(np.abs(ch_mask[i].mask[j])) < 25 * count + 1:
                     ch_mask[i].mask[j] = 1
                     conv_list[i].weight.data[j] = torch.tensor(best[i][0], device=device, dtype=dtype)
                     if i != len(conv_list) - 1:
