@@ -5,17 +5,15 @@ sys.path.append(pardir)
 from channel_mask_generator import ChannelMaskGenerator
 from dense_mask_generator import DenseMaskGenerator
 from dataset import *
+from result_save_visualization import *
 import torch
-import numpy as np
-import pandas as pd
-import cloudpickle
 import torch.optim as optim
+import numpy as np
 
-data = {'attribute': [], 'epoch': [], 'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
+data_dict = {'attribute': [], 'epoch': [], 'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
 
 # 枝刈り前パラメータ利用
-with open('./result/CIFAR10_original_train.pkl', 'rb') as f:
-    original_net = cloudpickle.load(f)
+original_net = parameter_use('./result/CIFAR10_original_train.pkl')
 # 畳み込み層のリスト
 original_conv_list = [original_net.features[i] for i in range(len(original_net.features)) if
                       isinstance(original_net.features[i], nn.Conv2d)]
@@ -30,8 +28,7 @@ class CnnEvaluatePrune:
 
     def train(self, gene, g_count, conv_num):
         # 枝刈り後パラメータ利用
-        with open('./result/CIFAR10_dense_conv_prune.pkl', 'rb') as f:
-            self.network = cloudpickle.load(f)
+        self.network = parameter_use('./result/CIFAR10_dense_conv_prune.pkl')
         for param in self.network.classifier.parameters():
             param.requires_grad = False
         optimizer = optim.SGD(self.network.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
@@ -126,13 +123,7 @@ class CnnEvaluatePrune:
                   f', train_acc: {avg_train_acc:.4f}, 'f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
 
             # 結果の保存
-            data['attribute'].append(g_count)
-            data['epoch'].append(epoch + 1)
-            data['train_loss'].append(avg_train_loss)
-            data['train_acc'].append(avg_train_acc)
-            data['val_loss'].append(val_loss)
-            data['val_acc'].append(avg_val_acc)
-            df = pd.DataFrame.from_dict(data)
-            df.to_csv('./result/result_add_channels_train.csv')
+            input_data = [g_count, epoch + 1, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
+            result_save('./result/result_add_channels_train.csv', data_dict, input_data)
 
         return 1 / eva

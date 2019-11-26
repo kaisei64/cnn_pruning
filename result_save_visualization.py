@@ -6,7 +6,7 @@ from draw_architecture import mydraw
 
 def result_save(path, data_dict, input_data):
     for i, data in enumerate(data_dict):
-        data.append(input_data[i])
+        data_dict[data].append(input_data[i])
     df = pd.DataFrame.from_dict(data_dict)
     df.to_csv(path)
 
@@ -16,16 +16,16 @@ def parameter_save(path, param):
         cloudpickle.dump(param, f)
 
 
-# def parameter_use(path, parameter):
-#     with open('./result/CIFAR10_original_train.pkl', 'rb') as f:
-#         return cloudpickle.load(f)
+def parameter_use(path):
+    with open(path, 'rb') as f:
+        return cloudpickle.load(f)
 
 
 def parameter_distribution_vis(path, param):
     sns.set_style("darkgrid")
     sns_plot = sns.distplot(param, rug=True)
     sns_plot.figure.savefig(path)
-    # sns_plot.figure.clear()
+    sns_plot.figure.clear()
 
 
 # fl_numで取り出すチャネルを指定

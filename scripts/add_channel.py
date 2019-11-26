@@ -7,22 +7,18 @@ from channel_mask_generator import ChannelMaskGenerator
 from dataset import *
 from pfgacnn import PfgaCnn
 from cnn_evaluateprune import CnnEvaluatePrune
+from result_save_visualization import *
 import torch
 import torch.nn as nn
 import numpy as np
-import cloudpickle
-import seaborn as sns
 
 # 枝刈り前パラメータ利用
-with open('./result/CIFAR10_original_train.pkl', 'rb') as f:
-    original_net = cloudpickle.load(f)
+original_net = parameter_use('./result/CIFAR10_original_train.pkl')
 # 枝刈り前畳み込み層のリスト
 original_conv_list = [original_net.features[i] for i in range(len(original_net.features)) if
                       isinstance(original_net.features[i], nn.Conv2d)]
-
 # 枝刈り後パラメータ利用
-with open('./result/CIFAR10_dense_conv_prune.pkl', 'rb') as f:
-    new_net = cloudpickle.load(f)
+new_net = parameter_use('./result/CIFAR10_dense_conv_prune.pkl')
 # 枝刈り後畳み込み層のリスト
 conv_list = [new_net.features[i] for i in range(len(new_net.features)) if isinstance(new_net.features[i], nn.Conv2d)]
 # マスクのオブジェクト
@@ -30,17 +26,14 @@ ch_mask = [ChannelMaskGenerator() for _ in range(len(conv_list))]
 for i, conv in enumerate(conv_list):
     ch_mask[i].mask = np.where(np.abs(conv.weight.data.clone().cpu().detach().numpy()) == 0, 0, 1)
 
-max_gen = 100
+max_gen = 1
 add_channel_num = 10
 
 # 追加前重み分布の描画
 for i in range(len(conv_list)):
     before_weight = [np.sum(conv_list[i].weight.data[k].cpu().detach().numpy()) for k
                      in range(len(conv_list[i].weight.data.cpu().numpy()))]
-    sns.set_style("darkgrid")
-    before_sns_plot = sns.distplot(before_weight, rug=True)
-    before_sns_plot.figure.savefig(f'./figure/before_weight_distribution{i + 1}.png')
-    before_sns_plot.figure.clear()
+    parameter_distribution_vis(f'./figure/before_weight_distribution{i + 1}.png', before_weight)
 
 for count in range(add_channel_num):
     ev = [CnnEvaluatePrune() for _ in range(len(conv_list))]
@@ -71,10 +64,7 @@ for count in range(add_channel_num):
         # 追加後重み分布の描画
         after_weight = [np.sum(conv_list[i].weight.data[k].cpu().detach().numpy()) for k
                         in range(len(conv_list[i].weight.data.cpu().numpy()))]
-        after_sns_plot = sns.distplot(after_weight, rug=True)
-        after_sns_plot.figure.savefig(f'./figure/after{count + 1}_weight_distribution{i + 1}.png')
-        after_sns_plot.figure.clear()
+        parameter_distribution_vis(f'./figure/after{count + 1}_weight_distribution{i + 1}.png', after_weight)
 
         # パラメータの保存
-        with open('./result/CIFAR10_dense_conv_prune.pkl', 'wb') as f:
-            cloudpickle.dump(new_net, f)
+        parameter_save('./result/CIFAR10_dense_conv_prune.pkl', new_net)
