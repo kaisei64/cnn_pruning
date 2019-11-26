@@ -3,12 +3,15 @@ import sys
 pardir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(pardir)
 from channel_mask_generator import ChannelMaskGenerator
+from dense_mask_generator import DenseMaskGenerator
 from dataset import *
 import torch
 import numpy as np
 import pandas as pd
 import cloudpickle
 import torch.optim as optim
+
+data = {'attribute': [], 'epoch': [], 'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
 
 # 枝刈り前パラメータ利用
 with open('./result/CIFAR10_original_train.pkl', 'rb') as f:
@@ -36,11 +39,17 @@ class CnnEvaluatePrune:
         # 畳み込み層のリスト
         conv_list = [self.network.features[i] for i in range(len(self.network.features)) if
                      isinstance(self.network.features[i], nn.Conv2d)]
+        # 全結合層のリスト
+        dense_list = [self.network.classifier[i] for i in range(len(self.network.classifier)) if
+                      isinstance(self.network.classifier[i], nn.Linear)]
 
-        # マスクのオブジェクト
+        # 畳み込み層マスクのオブジェクト
         ch_mask = [ChannelMaskGenerator() for _ in range(len(conv_list))]
         for i, conv in enumerate(conv_list):
             ch_mask[i].mask = np.where(np.abs(conv.weight.data.clone().cpu().detach().numpy()) == 0, 0, 1)
+        # 全結合層マスクのオブジェクト
+        de_mask = [DenseMaskGenerator() for _ in dense_list]
+
 
         # 追加
         with torch.no_grad():
@@ -71,11 +80,11 @@ class CnnEvaluatePrune:
         for i in range(len(conv_list)):
             print(f'channel_number{i + 1}: {channel_num_new[i]}', end=", " if i != len(conv_list) - 1 else "\n")
 
-        f_num_epochs = 1
+        f_num_epochs = 5
         eva = 0
         for param in self.network.features.parameters():
             param.requires_grad = False
-        for param in self.network.classfier.parameters():
+        for param in self.network.classifier.parameters():
             param.requires_grad = True
 
         # finetune
@@ -93,8 +102,10 @@ class CnnEvaluatePrune:
                 loss.backward()
                 optimizer.step()
                 with torch.no_grad():
-                    for j, conv in enumerate(conv_list):
-                        conv.weight.data *= torch.tensor(ch_mask[j].mask, device=device, dtype=dtype)
+                    for j, dense in enumerate(dense_list):
+                        if de_mask[j].mask is None:
+                            break
+                        dense.weight.data *= torch.tensor(de_mask[j].mask, device=device, dtype=dtype)
             avg_train_loss, avg_train_acc = train_loss / len(train_loader.dataset), train_acc / len(train_loader.dataset)
 
             # val
@@ -115,10 +126,13 @@ class CnnEvaluatePrune:
                   f', train_acc: {avg_train_acc:.4f}, 'f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
 
             # 結果の保存
-            data = {'attribute': [], 'val_acc': []}
             data['attribute'].append(g_count)
+            data['epoch'].append(epoch + 1)
+            data['train_loss'].append(avg_train_loss)
+            data['train_acc'].append(avg_train_acc)
+            data['val_loss'].append(val_loss)
             data['val_acc'].append(avg_val_acc)
             df = pd.DataFrame.from_dict(data)
-            df.to_csv('./result/result_add_channels.csv')
+            df.to_csv('./result/result_add_channels_train.csv')
 
-        return eva
+        return 1 / eva
