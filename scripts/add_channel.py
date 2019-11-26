@@ -26,14 +26,14 @@ ch_mask = [ChannelMaskGenerator() for _ in range(len(conv_list))]
 for i, conv in enumerate(conv_list):
     ch_mask[i].mask = np.where(np.abs(conv.weight.data.clone().cpu().detach().numpy()) == 0, 0, 1)
 
-max_gen = 1
+gen_num = 1
 add_channel_num = 10
 
 # 追加前重み分布の描画
 for i in range(len(conv_list)):
     before_weight = [np.sum(conv_list[i].weight.data[k].cpu().detach().numpy()) for k
                      in range(len(conv_list[i].weight.data.cpu().numpy()))]
-    parameter_distribution_vis(f'./figure/before_weight_distribution{i + 1}.png', before_weight)
+    parameter_distribution_vis(f'./figure/dis_vis/conv{i + 1}/before_weight_distribution{i + 1}.png', before_weight)
 
 for count in range(add_channel_num):
     ev = [CnnEvaluatePrune() for _ in range(len(conv_list))]
@@ -41,7 +41,7 @@ for count in range(add_channel_num):
                   evaluate_func=ev[i].evaluate, better_high=True, mutate_rate=0.1) for i, conv in enumerate(conv_list)]
     best = [list() for _ in range(len(ga))]
     for i in range(len(ga)):
-        while ga[i].generation_num < max_gen:
+        while ga[i].generation_num < gen_num:
             ga[i].next_generation()
             best[i] = ga[i].best_gene()
             if best[i] is not None:
@@ -64,7 +64,11 @@ for count in range(add_channel_num):
         # 追加後重み分布の描画
         after_weight = [np.sum(conv_list[i].weight.data[k].cpu().detach().numpy()) for k
                         in range(len(conv_list[i].weight.data.cpu().numpy()))]
-        parameter_distribution_vis(f'./figure/after{count + 1}_weight_distribution{i + 1}.png', after_weight)
+        parameter_distribution_vis(f'./figure/dis_vis/conv{i + 1}/after{count + 1}_weight_distribution{i + 1}.png', after_weight)
+
+        # 追加後チャネル可視化
+        for j in range(conv_list[i].out_channels):
+            conv_vis(f'./figure/ch_vis/conv{i + 1}/after{count + 1}_conv{i + 1}_filter{j + 1}.png', conv_list[i].weight.data, j)
 
         # パラメータの保存
         parameter_save('./result/CIFAR10_dense_conv_prune.pkl', new_net)

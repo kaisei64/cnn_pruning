@@ -47,7 +47,6 @@ class CnnEvaluatePrune:
         # 全結合層マスクのオブジェクト
         de_mask = [DenseMaskGenerator() for _ in dense_list]
 
-
         # 追加
         with torch.no_grad():
             add_count = 0
@@ -118,9 +117,8 @@ class CnnEvaluatePrune:
             avg_val_loss, avg_val_acc = val_loss / len(test_loader.dataset), val_acc / len(test_loader.dataset)
             eva = avg_val_loss
 
-            # print(f'epoch [{epoch + 1}/{f_num_epochs}], val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}\n')
             print(f'epoch [{epoch + 1}/{f_num_epochs}], train_loss: {avg_train_loss:.4f}'
-                  f', train_acc: {avg_train_acc:.4f}, 'f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
+                  f', train_acc: {avg_train_acc:.4f}, val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
 
             # 結果の保存
             input_data = [g_count, epoch + 1, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
