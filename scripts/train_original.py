@@ -3,18 +3,17 @@ import sys
 pardir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(pardir)
 from dataset import *
+from result_save_visualization import *
 import torch
 import torchvision.models as models
 import torch.optim as optim
-import pandas as pd
-import cloudpickle
 import time
 
 net = models.alexnet(num_classes=100).to(device)
 optimizer = optim.SGD(net.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
 num_epochs = 150
 
-data = {'epoch': [], 'time': [], 'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
+data_dict = {'epoch': [], 'time': [], 'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
 
 start = time.time()
 for epoch in range(num_epochs):
@@ -54,15 +53,8 @@ for epoch in range(num_epochs):
           f', train_acc: {avg_train_acc:.4f}, 'f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
 
     # 結果の保存
-    data['epoch'].append(epoch + 1)
-    data['time'].append(process_time)
-    data['train_loss'].append(avg_train_loss)
-    data['train_acc'].append(avg_train_acc)
-    data['val_loss'].append(val_loss)
-    data['val_acc'].append(avg_val_acc)
-    df = pd.DataFrame.from_dict(data)
-    df.to_csv('./result/result_cifar10.csv')
+    input_data = [epoch + 1, process_time, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
+    result_save('./result/result_cifar10.csv', data_dict, input_data)
 
 # パラメータの保存
-with open('./result/CIFAR10_original_train.pkl', 'wb') as f:
-    cloudpickle.dump(net, f)
+parameter_save('./result/CIFAR10_original_train.pkl', net)
