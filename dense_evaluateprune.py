@@ -3,14 +3,16 @@ import sys
 pardir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(pardir)
 from dense_mask_generator import DenseMaskGenerator
+from result_save_visualization import *
 from dataset import *
 import torch
 import numpy as np
-import cloudpickle
+
+data_dict = {'attribute': [], 'epoch': [], 'val_loss': [], 'val_acc': []}
 
 # 枝刈り前パラメータ利用
-with open('./result/CIFAR10_original_train.pkl', 'rb') as f:
-    original_net = cloudpickle.load(f)
+original_net = parameter_use('./result/CIFAR10_original_train.pkl')
+
 # 全結合層のリスト
 original_dense_list = [original_net.classifier[i] for i in range(len(original_net.classifier)) if
                        isinstance(original_net.classifier[i], nn.Linear)]
@@ -25,8 +27,7 @@ class DenseEvaluatePrune:
 
     def train(self, gene, g_count, dense_num):
         # 枝刈り後パラメータ利用
-        with open('./result/CIFAR10_dense_prune.pkl', 'rb') as f:
-            self.network = cloudpickle.load(f)
+        self.network = parameter_use('./result/CIFAR10_dense_prune.pkl')
         for param in self.network.features.parameters():
             param.requires_grad = False
 
@@ -39,7 +40,7 @@ class DenseEvaluatePrune:
         for i, dense in enumerate(dense_list):
             de_mask[i].mask = np.where(np.abs(dense.weight.data.clone().cpu().detach().numpy()) == 0, 0, 1)
 
-        # add
+        # 追加
         with torch.no_grad():
             add_count = 0
             for i in range(len(dense_list)):
@@ -82,7 +83,12 @@ class DenseEvaluatePrune:
                     val_loss += loss.item()
                     val_acc += (outputs.max(1)[1] == labels).sum().item()
             avg_val_loss, avg_val_acc = val_loss / len(test_loader.dataset), val_acc / len(test_loader.dataset)
-            eva = avg_val_acc
+            eva = avg_val_loss
 
             print(f'epoch [{epoch + 1}/{f_num_epochs}], val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
-        return eva
+
+            # 結果の保存
+            input_data = [g_count, epoch + 1, avg_val_loss, avg_val_acc]
+            result_save('./result/result_add_neurons_not_train.csv', data_dict, input_data)
+
+        return 1 / eva
