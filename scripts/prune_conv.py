@@ -98,7 +98,7 @@ for count in range(1, inv_prune_ratio):
 
         # 結果の保存
         input_data = [epoch + 1, process_time, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
-        result_save('./result/result_add_channels_train.csv', data_dict, input_data)
+        result_save('./result/ch_prune_result.csv', data_dict, input_data)
 
 # パラメータの保存
 parameter_save('./result/CIFAR10_conv_prune.pkl', new_net)
