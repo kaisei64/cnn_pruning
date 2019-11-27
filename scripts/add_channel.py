@@ -1,6 +1,5 @@
 import os
 import sys
-
 pardir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(pardir)
 from channel_mask_generator import ChannelMaskGenerator
@@ -26,7 +25,7 @@ ch_mask = [ChannelMaskGenerator() for _ in range(len(conv_list))]
 for i, conv in enumerate(conv_list):
     ch_mask[i].mask = np.where(np.abs(conv.weight.data.clone().cpu().detach().numpy()) == 0, 0, 1)
 
-gen_num = 1
+gen_num = 30
 add_channel_num = 10
 
 # 追加前重み分布の描画
@@ -47,11 +46,11 @@ for count in range(add_channel_num):
             if best[i] is not None:
                 print(f'gen{i + 1}:{ga[i].generation_num} best-value{i + 1}:{best[i][1]}\n')
 
-        # 層ごとに１チャネルごと追加
         with torch.no_grad():
+            # 層ごとに１チャネルごと追加
             add_count = 0
             for j in range(len(conv_list[i].weight.data.cpu().numpy())):
-                if np.sum(np.abs(ch_mask[i].mask[j])) < 25 * count + 1:
+                if np.sum(np.abs(ch_mask[i].mask[j])) < 25 * (count + 1) + 1:
                     ch_mask[i].mask[j] = 1
                     conv_list[i].weight.data[j] = torch.tensor(best[i][0], device=device, dtype=dtype)
                     if i != len(conv_list) - 1:
@@ -61,14 +60,18 @@ for count in range(add_channel_num):
                     if add_count == 1:
                         break
 
-        # 追加後重み分布の描画
-        after_weight = [np.sum(conv_list[i].weight.data[k].cpu().detach().numpy()) for k
-                        in range(len(conv_list[i].weight.data.cpu().numpy()))]
-        parameter_distribution_vis(f'./figure/dis_vis/conv{i + 1}/after{count + 1}_weight_distribution{i + 1}.png', after_weight)
+            # 追加後重み分布の描画
+            after_weight = [np.sum(conv_list[i].weight.data[k].cpu().numpy()) for k
+                            in range(len(conv_list[i].weight.data.cpu().numpy()))]
+            parameter_distribution_vis(f'./figure/dis_vis/conv{i + 1}/after{count + 1}_weight_distribution{i + 1}.png', after_weight)
 
-        # 追加後チャネル可視化
-        for j in range(conv_list[i].out_channels):
-            conv_vis(f'./figure/ch_vis/conv{i + 1}/after{count + 1}_conv{i + 1}_filter{j + 1}.png', conv_list[i].weight.data, j)
+            # 追加後チャネル可視化
+            for j in range(conv_list[i].out_channels):
+                for k in range(len(conv_list[i].weight.data.cpu().numpy())):
+                    if np.sum(np.abs(ch_mask[i].mask[k])) > 25 * (count + 1) + 1:
+                        print(np.sum(np.abs(ch_mask[i].mask[k])))
+                        conv_vis(f'./figure/ch_vis/conv{i + 1}/after{count + 1}_conv{i + 1}_filter{j + 1}.png'
+                                 , conv_list[i].weight.data.cpu().numpy(), j)
 
         # パラメータの保存
         parameter_save('./result/CIFAR10_dense_conv_prune.pkl', new_net)

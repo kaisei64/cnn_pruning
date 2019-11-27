@@ -33,6 +33,7 @@ def parameter_distribution_vis(path, param):
 def conv_vis(path, param, fl_num, ch_num=0):
     sns_map = sns.heatmap(param[fl_num, ch_num, :, :], vmin=0.0, vmax=1.0)
     sns_map.figure.savefig(path)
+    sns_map.figure.clear()
 
 
 # 入力はパラメータのリスト
