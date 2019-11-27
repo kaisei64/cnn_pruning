@@ -4,17 +4,16 @@ pardir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(pardir)
 from channel_mask_generator import ChannelMaskGenerator
 from dataset import *
+from result_save_visualization import *
 import torch
 import torch.nn as nn
 import numpy as np
-import cloudpickle
-import pandas as pd
 import time
 
-data = {'epoch': [], 'time': [], 'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
+data_dict = {'epoch': [], 'time': [], 'val_loss': [], 'val_acc': []}
+
 # パラメータ利用, 全結合パラメータの凍結
-with open('./result/CIFAR10_dense_prune.pkl', 'rb') as f:
-    new_net = cloudpickle.load(f)
+new_net = parameter_use('./result/CIFAR10_dense_prune.pkl')
 
 # 畳み込み層のリスト
 conv_list = [new_net.features[i] for i in range(len(new_net.features)) if isinstance(new_net.features[i], nn.Conv2d)]
@@ -76,17 +75,9 @@ for count in range(1, inv_prune_ratio):
               f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
 
         # 結果の保存
-        data['epoch'].append(epoch + 1)
-        data['time'].append(process_time)
-        data['val_loss'].append(val_loss)
-        data['val_acc'].append(avg_val_acc)
-        df = pd.DataFrame.from_dict(data)
-        df.to_csv('./result/dense_conv_prune_not_prune_result.csv')
+        input_data = [epoch + 1, process_time, avg_val_loss, avg_val_acc]
+        result_save('./result/dense_conv_prune_not_prune_result.csv', data_dict, input_data)
 
 # パラメータの保存
-with open('./result/CIFAR10_dense_conv_prune_not_train.pkl', 'wb') as f:
-    cloudpickle.dump(new_net, f)
-
-# パラメータの保存
-with open('./result/CIFAR10_dense_conv_prune_not_train_copy.pkl', 'wb') as f:
-    cloudpickle.dump(new_net, f)
+parameter_save('./result/CIFAR10_dense_conv_prune_not_train.pkl', new_net)
+parameter_save('./result/CIFAR10_dense_conv_prune_not_train_copy.pkl', new_net)
