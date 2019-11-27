@@ -6,14 +6,13 @@ from dense_mask_generator import DenseMaskGenerator
 from dataset import *
 from pfgadense import PfgaDense
 from dense_evaluateprune import DenseEvaluatePrune
+from result_save_visualization import *
 import torch
 import torch.nn as nn
 import numpy as np
-import cloudpickle
 
 # パラメータ利用
-with open('./result/CIFAR10_dense_prune.pkl', 'rb') as f:
-    new_net = cloudpickle.load(f)
+new_net = parameter_use('./result/CIFAR10_dense_conv_prune.pkl')
 # 全結合層のリスト
 dense_list = [new_net.classifier[i] for i in range(len(new_net.classifier)) if isinstance(new_net.classifier[i], nn.Linear)]
 
@@ -45,5 +44,4 @@ for i in range(len(ga)):
                 if add_count == 1:
                     break
     # パラメータの保存
-    # with open('./result/CIFAR10_dense_conv_prune.pkl', 'wb') as f:
-    #     cloudpickle.dump(new_net, f)
+    # parameter_save('./result/CIFAR10_dense_conv_prune.pkl', new_net)
