@@ -1,7 +1,3 @@
-import os
-import sys
-pardir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(pardir)
 from dense_mask_generator import DenseMaskGenerator
 from result_save_visualization import *
 from dataset import *
