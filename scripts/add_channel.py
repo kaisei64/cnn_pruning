@@ -67,11 +67,8 @@ for count in range(add_channel_num):
 
             # 追加後チャネル可視化
             for j in range(conv_list[i].out_channels):
-                for k in range(len(conv_list[i].weight.data.cpu().numpy())):
-                    if np.sum(np.abs(ch_mask[i].mask[k])) > 25 * (count + 1) + 1:
-                        print(np.sum(np.abs(ch_mask[i].mask[k])))
-                        conv_vis(f'./figure/ch_vis/conv{i + 1}/after{count + 1}_conv{i + 1}_filter{j + 1}.png'
-                                 , conv_list[i].weight.data.cpu().numpy(), j)
+                conv_vis(f'./figure/ch_vis/conv{i + 1}/after{count + 1}_conv{i + 1}_filter{j + 1}.png'
+                         , conv_list[i].weight.data.cpu().numpy(), j)
 
         # パラメータの保存
         parameter_save('./result/CIFAR10_dense_conv_prune.pkl', new_net)
