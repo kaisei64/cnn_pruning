@@ -31,7 +31,7 @@ def parameter_distribution_vis(path, param):
 # fl_numで取り出すチャネルを指定
 # ch_numで取り出すチャネルを指定
 def conv_vis(path, param, fl_num, ch_num=0):
-    sns_map = sns.heatmap(param[fl_num, ch_num, :, :], vmin=0.0, vmax=1.0)
+    sns_map = sns.heatmap(param[fl_num, ch_num, :, :], vmin=0.0, vmax=1.0, annot=True)
     sns_map.figure.savefig(path)
     sns_map.figure.clear()
 
