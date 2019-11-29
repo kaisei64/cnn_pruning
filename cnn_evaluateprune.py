@@ -2,6 +2,7 @@ from channel_mask_generator import ChannelMaskGenerator
 from dense_mask_generator import DenseMaskGenerator
 from dataset import *
 from result_save_visualization import *
+from channel_importance import channel_euclidean_distance
 import torch
 import torch.optim as optim
 import numpy as np
@@ -72,6 +73,11 @@ class CnnEvaluatePrune:
         for i in range(len(conv_list)):
             print(f'channel_number{i + 1}: {channel_num_new[i]}', end=", " if i != len(conv_list) - 1 else "\n")
 
+        similarity = 0
+        # チャネル間の類似度
+        for i in range(len(self.network.out_features)):
+            similarity += channel_euclidean_distance(gene, conv_list[conv_num].weight.data.cpu().detach().numpy()[i])
+
         f_num_epochs = 5
         eva = 0
         for param in self.network.features.parameters():
@@ -120,4 +126,4 @@ class CnnEvaluatePrune:
             input_data = [g_count, epoch + 1, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
             result_save('./result/result_add_channels_train.csv', data_dict, input_data)
 
-        return 1 / eva
+        return eva + similarity
