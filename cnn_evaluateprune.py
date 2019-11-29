@@ -4,7 +4,7 @@ from dataset import *
 from result_save_visualization import *
 from channel_importance import channel_euclidean_distance
 import torch
-import torch.optim as optim
+# import torch.optim as optim
 import numpy as np
 
 data_dict = {'attribute': [], 'epoch': [], 'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
@@ -28,7 +28,7 @@ class CnnEvaluatePrune:
         self.network = parameter_use('./result/CIFAR10_dense_conv_prune.pkl')
         for param in self.network.classifier.parameters():
             param.requires_grad = False
-        optimizer = optim.SGD(self.network.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
+        # optimizer = optim.SGD(self.network.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
 
         # 畳み込み層のリスト
         conv_list = [self.network.features[i] for i in range(len(self.network.features)) if
@@ -88,23 +88,24 @@ class CnnEvaluatePrune:
         # finetune
         for epoch in range(f_num_epochs):
             # train
-            self.network.train()
-            train_loss, train_acc = 0, 0
-            for i, (images, labels) in enumerate(train_loader):
-                images, labels = images.to(device), labels.to(device)
-                optimizer.zero_grad()
-                outputs = self.network(images)
-                loss = criterion(outputs, labels)
-                train_loss += loss.item()
-                train_acc += (outputs.max(1)[1] == labels).sum().item()
-                loss.backward()
-                optimizer.step()
-                with torch.no_grad():
-                    for j, dense in enumerate(dense_list):
-                        if de_mask[j].mask is None:
-                            break
-                        dense.weight.data *= torch.tensor(de_mask[j].mask, device=device, dtype=dtype)
-            avg_train_loss, avg_train_acc = train_loss / len(train_loader.dataset), train_acc / len(train_loader.dataset)
+            # self.network.train()
+            # train_loss, train_acc = 0, 0
+            # for i, (images, labels) in enumerate(train_loader):
+            #     images, labels = images.to(device), labels.to(device)
+            #     optimizer.zero_grad()
+            #     outputs = self.network(images)
+            #     loss = criterion(outputs, labels)
+            #     train_loss += loss.item()
+            #     train_acc += (outputs.max(1)[1] == labels).sum().item()
+            #     loss.backward()
+            #     optimizer.step()
+            #     with torch.no_grad():
+            #         for j, dense in enumerate(dense_list):
+            #             if de_mask[j].mask is None:
+            #                 break
+            #             dense.weight.data *= torch.tensor(de_mask[j].mask, device=device, dtype=dtype)
+            # avg_train_loss, avg_train_acc = train_loss / len(train_loader.dataset), train_acc / len(train_loader.dataset)
+            avg_train_loss, avg_train_acc = 0, 0
 
             # val
             self.network.eval()

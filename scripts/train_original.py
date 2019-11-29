@@ -23,7 +23,6 @@ for epoch in range(num_epochs):
     for i, (images, labels) in enumerate(train_loader):
         # view()での変換をしない
         images, labels = images.to(device), labels.to(device)
-
         optimizer.zero_grad()
         outputs = net(images)
         loss = criterion(outputs, labels)

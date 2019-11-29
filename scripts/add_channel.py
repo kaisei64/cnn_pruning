@@ -37,7 +37,7 @@ for i in range(len(conv_list)):
 for count in range(add_channel_num):
     ev = [CnnEvaluatePrune() for _ in range(len(conv_list))]
     ga = [PfgaCnn(conv.in_channels, conv.kernel_size, i,
-                  evaluate_func=ev[i].evaluate, better_high=True, mutate_rate=0.1) for i, conv in enumerate(conv_list)]
+                  evaluate_func=ev[i].evaluate, better_high=False, mutate_rate=0.1) for i, conv in enumerate(conv_list)]
     best = [list() for _ in range(len(ga))]
     for i in range(len(ga)):
         while ga[i].generation_num < gen_num:
@@ -66,9 +66,9 @@ for count in range(add_channel_num):
             parameter_distribution_vis(f'./figure/dis_vis/conv{i + 1}/after{count + 1}_weight_distribution{i + 1}.png', after_weight)
 
             # 追加後チャネル可視化
-            for j in range(conv_list[i].out_channels):
-                conv_vis(f'./figure/ch_vis/conv{i + 1}/after{count + 1}_conv{i + 1}_filter{j + 1}.png'
-                         , conv_list[i].weight.data.cpu().numpy(), j)
+            # for j in range(conv_list[i].out_channels):
+            #     conv_vis(f'./figure/ch_vis/conv{i + 1}/after{count + 1}_conv{i + 1}_filter{j + 1}.png'
+            #              , conv_list[i].weight.data.cpu().numpy(), j)
 
         # パラメータの保存
         parameter_save('./result/CIFAR10_dense_conv_prune.pkl', new_net)

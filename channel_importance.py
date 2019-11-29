@@ -12,7 +12,7 @@ conv_list = [net.features[i] for i in range(len(net.features)) if
 
 def channel_importance(conv_num):
     # 勾配と重みの積を保持
-    grad_weight_multi_for_each_layer = [conv_list[i].weight.data.cpu().numpy() * conv_list[i].grad.data.cpu().numpy()
+    grad_weight_multi_for_each_layer = [conv_list[i].weight.data.cpu().numpy() * conv_list[i].weight.grad.cpu().numpy()
                                         for i in range(len(conv_list))]
     # 勾配と重みの積のL1ノルムを保持
     grad_weight_multi_l1norm = [list() for _ in range(len(conv_list))]
