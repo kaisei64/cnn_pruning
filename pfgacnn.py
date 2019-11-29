@@ -1,5 +1,15 @@
+import torch.nn as nn
 import numpy as np
 import copy
+import random
+from channel_importance import channel_importance
+from result_save_visualization import *
+
+# パラメータ利用
+net = parameter_use('./result/CIFAR10_original_train.pkl')
+# 畳み込み層のリスト
+conv_list = [net.features[i] for i in range(len(net.features)) if
+             isinstance(net.features[i], nn.Conv2d)]
 
 
 class PfgaCnn:
@@ -15,12 +25,16 @@ class PfgaCnn:
 
     def add_new_population(self):
         new_gene = []
-        a = np.random.rand(self.gene_len1, self.gene_len2[0], self.gene_len2[1])
-        a_max = np.max(a)
-        a_min = np.min(a)
-        # -1から+1の範囲に正規化
-        y = 2 * (a - a_min) / (a_max - a_min) - 1
-        new_gene.append(y)
+        # -1から+1の範囲に正規化した初期個体をランダムに決定
+        # a = np.random.rand(self.gene_len1, self.gene_len2[0], self.gene_len2[1])
+        # a_max = np.max(a)
+        # a_min = np.min(a)
+        # y = 2 * (a - a_min) / (a_max - a_min) - 1
+        # チャネル重要度が上位10%の個体を初期個体にする
+        ch_high10, ch_low5 = channel_importance(self.conv_num)
+        # 選択されるチャネルのindex
+        ch_index = random.choice(ch_high10)
+        new_gene.append(conv_list[self.conv_num].weight.data.clone().cpu().detach().numpy()[ch_index, :, :, :])
         new_gene.append(None)
         self.family.append(new_gene)
 
