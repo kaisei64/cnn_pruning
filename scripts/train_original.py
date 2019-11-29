@@ -21,7 +21,6 @@ for epoch in range(num_epochs):
     net.train()
     train_loss, train_acc = 0, 0
     for i, (images, labels) in enumerate(train_loader):
-        # view()での変換をしない
         images, labels = images.to(device), labels.to(device)
         optimizer.zero_grad()
         outputs = net(images)
@@ -30,9 +29,7 @@ for epoch in range(num_epochs):
         train_acc += (outputs.max(1)[1] == labels).sum().item()
         loss.backward()
         optimizer.step()
-
-    avg_train_loss = train_loss / len(train_loader.dataset)
-    avg_train_acc = train_acc / len(train_loader.dataset)
+    avg_train_loss, avg_train_acc = train_loss / len(train_loader.dataset), train_acc / len(train_loader.dataset)
 
     # val
     net.eval()
