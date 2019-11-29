@@ -28,3 +28,7 @@ def channel_importance(conv_num):
                 ch_low_5[i] = np.argsort(grad_weight_multi_for_each_layer[i])[int(conv_list[i].out_features * 19 / 20):]
 
     return ch_high_10[conv_num], ch_low_5[conv_num]
+
+
+def channel_euclidean_distance(ch1, ch2):
+    return np.linalg.norm(ch1 - ch2)
