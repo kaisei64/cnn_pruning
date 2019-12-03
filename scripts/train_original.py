@@ -50,7 +50,17 @@ for epoch in range(num_epochs):
 
     # 結果の保存
     input_data = [epoch + 1, process_time, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
-    result_save('./result/result_cifar10.csv', data_dict, input_data)
+    result_save('./result/result_cifar10_epoch150.csv', data_dict, input_data)
 
 # パラメータの保存
-parameter_save('./result/CIFAR10_original_train.pkl', net)
+parameter_save('./result/CIFAR10_original_train_epoch150.pkl', net)
+
+# 勾配の保存
+conv_list = [net.features[i] for i in range(len(net.features)) if
+             isinstance(net.features[i], nn.Conv2d)]
+dense_list = [net.classifier[i] for i in range(len(net.classifier)) if
+              isinstance(net.classifier[i], nn.Linear)]
+for i, conv in enumerate(conv_list):
+    parameter_save(f'./result/original_grad_conv{i}.pkl', conv.weight.grad)
+for i, dense in enumerate(dense_list):
+    parameter_save(f'./result/original_grad_dense{i}.pkl', dense.weight.grad)
