@@ -14,7 +14,7 @@ import time
 data_dict = {'epoch': [], 'time': [], 'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
 
 # パラメータ利用, 全結合パラメータの凍結
-new_net = parameter_use('./result/CIFAR10_original_train.pkl')
+new_net = parameter_use('./result/CIFAR10_original_train_epoch150.pkl')
 for param in new_net.features.parameters():
     param.requires_grad = False
 
@@ -68,7 +68,7 @@ for count in range(1, inv_prune_ratio):
     for i in range(len(dense_list)):
         print(f'neuron_number{i+1}: {neuron_num_new[i]}', end=", " if i != dense_count - 1 else "\n"if i != dense_count - 1 else "\n")
 
-    f_num_epochs = 5
+    f_num_epochs = 10
     # finetune
     start = time.time()
     for epoch in range(f_num_epochs):
