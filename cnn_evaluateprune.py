@@ -127,4 +127,4 @@ class CnnEvaluatePrune:
             input_data = [g_count, epoch + 1, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
             result_save('./result/result_add_channels_not_train.csv', data_dict, input_data)
 
-        return eva + similarity
+        return 100000 * eva + similarity
