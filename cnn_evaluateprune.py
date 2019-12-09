@@ -10,7 +10,7 @@ import numpy as np
 data_dict = {'attribute': [], 'epoch': [], 'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
 
 # 枝刈り前パラメータ利用
-original_net = parameter_use('./result/CIFAR10_original_train.pkl')
+original_net = parameter_use('./result/CIFAR10_original_train_epoch150.pkl')
 # 畳み込み層のリスト
 original_conv_list = [original_net.features[i] for i in range(len(original_net.features)) if
                       isinstance(original_net.features[i], nn.Conv2d)]
@@ -75,15 +75,15 @@ class CnnEvaluatePrune:
 
         similarity = 0
         # チャネル間の類似度
-        for i in range(len(self.network.out_features)):
+        for i in range(conv_list[conv_num].out_channels):
             similarity += channel_euclidean_distance(gene, conv_list[conv_num].weight.data.cpu().detach().numpy()[i])
 
-        f_num_epochs = 5
+        f_num_epochs = 1
         eva = 0
-        for param in self.network.features.parameters():
-            param.requires_grad = False
-        for param in self.network.classifier.parameters():
-            param.requires_grad = True
+        # for param in self.network.features.parameters():
+        #     param.requires_grad = False
+        # for param in self.network.classifier.parameters():
+        #     param.requires_grad = True
 
         # finetune
         for epoch in range(f_num_epochs):
@@ -125,6 +125,6 @@ class CnnEvaluatePrune:
 
             # 結果の保存
             input_data = [g_count, epoch + 1, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
-            result_save('./result/result_add_channels_train.csv', data_dict, input_data)
+            result_save('./result/result_add_channels_not_train.csv', data_dict, input_data)
 
         return eva + similarity
