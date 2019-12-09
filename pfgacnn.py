@@ -6,7 +6,7 @@ from channel_importance import channel_importance
 from result_save_visualization import *
 
 # パラメータ利用
-net = parameter_use('./result/CIFAR10_original_train.pkl')
+net = parameter_use('./result/CIFAR10_original_train_epoch150.pkl')
 # 畳み込み層のリスト
 conv_list = [net.features[i] for i in range(len(net.features)) if
              isinstance(net.features[i], nn.Conv2d)]
@@ -33,7 +33,7 @@ class PfgaCnn:
         # チャネル重要度が上位10%の個体を初期個体にする
         ch_high10, ch_low5 = channel_importance(self.conv_num)
         # 選択されるチャネルのindex
-        ch_index = random.choice(ch_high10)
+        ch_index = random.choice(np.concatenate([ch_high10, ch_low5]))
         new_gene.append(conv_list[self.conv_num].weight.data.clone().cpu().detach().numpy()[ch_index, :, :, :])
         new_gene.append(None)
         self.family.append(new_gene)
@@ -61,17 +61,22 @@ class PfgaCnn:
     def crossover(self, p1, p2):
         c1 = self.copy_gene(p1)
         c2 = self.copy_gene(p2)
+        # 一点交叉
         for i in range(len(c1[0])):
+            seed = [i for i in range(len(c1[0]))]
+            cross_point1 = random.choice(seed)
+            cross_point2 = random.choice(seed)
             if np.random.rand() < 0.5:
-                c1[0][i], c2[0][i] = c2[0][i], c1[0][i]
+                c1[0][cross_point1], c2[0][cross_point2] = c2[0][cross_point2], c1[0][cross_point1]
         c1[1] = None
         c2[1] = None
         return c1, c2
 
     def mutate(self, g):
+        # 摂動
         for i in range(len(g[0])):
             if np.random.rand() < self.mutate_rate:
-                g[0][i] = np.random.rand()
+                g[0][i] = g[0][i] * 1.01
         return g
 
     def next_generation(self):
