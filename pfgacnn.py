@@ -62,30 +62,66 @@ class PfgaCnn:
     def crossover(self, p1, p2):
         c1 = self.copy_gene(p1)
         c2 = self.copy_gene(p2)
-        # 一点交叉
+        ch_seed = [i for i in range(len(c1[0]))]
+        val_seed = [i for i in range(len(c1[0][0]))]
+        # 一点交叉(チャネルごと交換)
         for i in range(len(c1[0])):
-            seed = [i for i in range(len(c1[0]))]
-            cross_point1 = random.choice(seed)
-            cross_point2 = random.choice(seed)
+            ch_cross_point1, ch_cross_point2 = random.choice(ch_seed), random.choice(ch_seed)
             if np.random.rand() < 0.5:
-                c1[0][cross_point1], c2[0][cross_point2] = c2[0][cross_point2], c1[0][cross_point1]
-        c1[1] = None
-        c2[1] = None
+                c1[0][ch_cross_point1], c2[0][ch_cross_point2] = c2[0][ch_cross_point2], c1[0][ch_cross_point1]
+        # 二点交叉(チャネルの一部を交換)
+        # for i in range(len(c1[0])):
+        #     ch_cross_point1, ch_cross_point2 = random.choice(ch_seed), random.choice(ch_seed)
+        #     val_cross_point1, val_cross_point2 = random.choice(val_seed), random.choice(val_seed)
+        #     if val_cross_point1 > val_cross_point2:
+        #         val_cross_point1, val_cross_point2 = val_cross_point2, val_cross_point1
+        #     if np.random.rand() < 0.5:
+        #         c1[0][ch_cross_point1][val_cross_point1:val_cross_point2] = c2[0][ch_cross_point2][val_cross_point1:val_cross_point2]
+        #         c2[0][ch_cross_point2][val_cross_point1:val_cross_point2] = c1[0][ch_cross_point1][val_cross_point1:val_cross_point2]
+        # 一様交叉
+        # for i in range(len(c1[0])):
+        #     uniform_mask1 = np.ones(c1[0][i].shape)
+        #     uniform_mask1[:int(len(c1[0][i][0]) / 2), :int(len(c1[0][i][0]) / 2)] = 0
+        #     np.random.shuffle(uniform_mask1)
+        #     np.random.shuffle(uniform_mask1.T)
+        #     uniform_mask2 = np.where(uniform_mask1 == 0, 1, 0)
+        #     c1[0][i], c2[0][i] = c1[0][i] * uniform_mask1 + c2[0][i] * uniform_mask2, c1[0][i] * uniform_mask2 + c2[0][i] * uniform_mask1
+        c1[1], c2[1] = None, None
         return c1, c2
 
     def mutate(self, g):
         # 摂動
-        for i in range(len(g[0])):
-            if np.random.rand() < self.mutate_rate:
-                g[0][i] = g[0][i] * 1.01
+        if np.random.rand() < self.mutate_rate:
+            for i in range(len(g[0])):
+                g[0][i] = g[0][i] * 1.05
+        # 反転
+        # if np.random.rand() < self.mutate_rate:
+        #     for i in range(len(g[0])):
+        #         g[0][i] = -g[0][i]
+        # 逆位
+        # if np.random.rand() < self.mutate_rate:
+        #     for i in range(len(g[0])):
+        #         g[0][i] = g[0][i, ::-1, ::-1]
+        # 撹拌
+        # if np.random.rand() < self.mutate_rate:
+        #     for i in range(len(g[0])):
+        #         g[0][i] = np.random.permutation(g[0][i])
+        #         g[0][i] = np.random.permutation(g[0][i].T)
+        # 欠失
+        # if np.random.rand() < self.mutate_rate:
+        #     for i in range(len(g[0])):
+        #         deletion_mask = np.ones(g[0][i].shape)
+        #         deletion_mask[:int(len(g[0][i][0]) / 2), :int(len(g[0][i][0]) / 2)] = 0
+        #         np.random.shuffle(deletion_mask)
+        #         np.random.shuffle(deletion_mask.T)
+        #         g[0][i] = g[0][i] * deletion_mask
         return g
 
     def next_generation(self):
         while len(self.family) < 2:
             self.add_new_population()
 
-        p1 = self.select_and_delete_gene()
-        p2 = self.select_and_delete_gene()
+        p1, p2 = self.select_and_delete_gene(), self.select_and_delete_gene()
 
         c1, c2 = self.crossover(p1, p2)
 
@@ -99,8 +135,8 @@ class PfgaCnn:
         genelist = p1, p2, c1, c2
         count = 0
         for i in genelist:
-            # if i[1] is None:
-            i[1] = self.evaluate_func(i[0], count, self.conv_num)
+            if i[1] is None:
+                i[1] = self.evaluate_func(i[0], count, self.conv_num)
             count += 1
 
         # rule-1:both child is better than both parent, remain both child and better 1 parent
