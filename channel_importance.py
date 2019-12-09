@@ -37,4 +37,8 @@ def channel_importance(conv_num):
 
 
 def channel_euclidean_distance(ch1, ch2):
-    return np.linalg.norm(ch1 - ch2)
+    return pow(np.linalg.norm(ch1 - ch2), 2)
+
+
+def cos_sim(ch1, ch2):
+    return np.dot(ch1, ch2) / (np.linalg.norm(ch1) * np.linalg.norm(ch2))
