@@ -1,5 +1,15 @@
+import torch.nn as nn
 import numpy as np
 import copy
+import random
+from neuron_importance import neuron_importance
+from result_save_visualization import *
+
+# パラメータ利用
+net = parameter_use('./result/CIFAR10_original_train_epoch150.pkl')
+# 全結合層のリスト
+dense_list = [net.classifier[i] for i in range(len(net.classifier)) if
+              isinstance(net.classifier[i], nn.Linear)]
 
 
 class PfgaDense:
@@ -14,12 +24,17 @@ class PfgaDense:
 
     def add_new_population(self):
         new_gene = []
-        a = np.random.rand(self.gene_len1)
-        a_max = np.max(a)
-        a_min = np.min(a)
-        # -1から+1の範囲に正規化
-        y = 2 * (a - a_min) / (a_max - a_min) - 1
-        new_gene.append(y)
+        # a = np.random.rand(self.gene_len1)
+        # a_max = np.max(a)
+        # a_min = np.min(a)
+        # # -1から+1の範囲に正規化
+        # y = 2 * (a - a_min) / (a_max - a_min) - 1
+        # ニューロン重要度が上位10%の個体を初期個体にする
+        de_high10, de_low5 = neuron_importance(self.dense_num)
+        # 選択されるニューロンのindex
+        # de_index = random.choice(np.concatenate([de_high10, de_low5]))
+        de_index = random.choice(de_high10)
+        new_gene.append(dense_list[self.dense_num].weight.data.clone().cpu().detach().numpy()[:, de_index])
         new_gene.append(None)
         self.family.append(new_gene)
 
@@ -46,17 +61,48 @@ class PfgaDense:
     def crossover(self, p1, p2):
         c1 = self.copy_gene(p1)
         c2 = self.copy_gene(p2)
-        for i in range(len(c1[0])):
-            if np.random.rand() < 0.5:
-                c1[0][i], c2[0][i] = c2[0][i], c1[0][i]
+        de_seed = [i for i in range(len(c1[0][0]))]
+        # 一点交叉
+        if np.random.rand() < 0.5:
+            de_cross_point1, de_cross_point2 = random.choice(de_seed), random.choice(de_seed)
+            c1[0][de_cross_point1], c2[0][de_cross_point2] = c2[0][de_cross_point2], c1[0][de_cross_point1]
+        # 二点交叉(チャネルの一部を交換)
+        # de_cross_point1, de_cross_point2 = random.choice(de_seed), random.choice(de_seed)
+        # if de_cross_point1 > de_cross_point2:
+        #     de_cross_point1, de_cross_point2 = de_cross_point2, de_cross_point1
+        # if np.random.rand() < 0.5:
+        #     c1[0][de_cross_point1:de_cross_point2] = c2[0][de_cross_point1:de_cross_point2]
+        #     c2[0][de_cross_point1:de_cross_point2] = c1[0][de_cross_point1:de_cross_point2]
+        # 一様交叉
+        # uniform_mask1 = np.ones(c1[0].shape)
+        # uniform_mask1[:int(len(c1[0]) / 2)] = 0
+        # np.random.shuffle(uniform_mask1)
+        # uniform_mask2 = np.where(uniform_mask1 == 0, 1, 0)
+        # if np.random.rand() < 0.5:
+        #     c1[0], c2[0] = c1[0] * uniform_mask1 + c2[0] * uniform_mask2, c1[0] * uniform_mask2 + c2[0] * uniform_mask1
         c1[1] = None
         c2[1] = None
         return c1, c2
 
     def mutate(self, g):
-        for i in range(len(g[0])):
-            if np.random.rand() < self.mutate_rate:
-                g[0][i] = np.random.rand()
+        # 摂動
+        if np.random.rand() < self.mutate_rate:
+            g[0] = g[0] * 1.05
+        # 反転
+        # if np.random.rand() < self.mutate_rate:
+        #     g[0] = -g[0]
+        # 逆位
+        # if np.random.rand() < self.mutate_rate:
+        #     g[0] = g[0][::-1]
+        # 撹拌
+        # if np.random.rand() < self.mutate_rate:
+        #     g[0] = np.random.permutation(g[0])
+        # 欠失
+        # if np.random.rand() < self.mutate_rate:
+        #     deletion_mask = np.ones(g[0].shape)
+        #     deletion_mask[:int(len(g[0]) / 2)] = 0
+        #     np.random.shuffle(deletion_mask)
+        #     g[0] = g[0] * deletion_mask
         return g
 
     def next_generation(self):
