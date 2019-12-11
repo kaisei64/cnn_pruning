@@ -17,8 +17,9 @@ original_conv_list = [original_net.features[i] for i in range(len(original_net.f
 
 
 class CnnEvaluatePrune:
-    def __init__(self):
+    def __init__(self, count):
         self.network = None
+        self.count = count
 
     def evaluate(self, gene, count, conv_num):
         return self.train(gene, count, conv_num)
@@ -47,7 +48,7 @@ class CnnEvaluatePrune:
         # 追加
         with torch.no_grad():
             for j in range(len(conv_list[conv_num].weight.data.cpu().numpy())):
-                if np.sum(np.abs(ch_mask[conv_num].mask[j])) < 26:
+                if np.sum(np.abs(ch_mask[conv_num].mask[j])) < 25 * (self.count + 1) + 1:
                     ch_mask[conv_num].mask[j] = 1
                     conv_list[conv_num].weight.data[j] = torch.tensor(gene, device=device, dtype=dtype)
                     if conv_num != len(conv_list) - 1:

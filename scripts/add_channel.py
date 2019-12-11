@@ -44,7 +44,7 @@ for i in range(len(conv_list)):
     parameter_distribution_vis(f'./figure/dis_vis/conv{i + 1}/before_weight_distribution{i + 1}.png', before_weight)
 
 for count in range(add_channel_num):
-    ev = [CnnEvaluatePrune() for _ in range(len(conv_list))]
+    ev = [CnnEvaluatePrune(count) for _ in range(len(conv_list))]
     ga = [PfgaCnn(conv.in_channels, conv.kernel_size, i,
                   evaluate_func=ev[i].evaluate, better_high=False, mutate_rate=0.1) for i, conv in enumerate(conv_list)]
     best = [list() for _ in range(len(ga))]
@@ -57,7 +57,6 @@ for count in range(add_channel_num):
 
         with torch.no_grad():
             # 層ごとに１チャネルごと追加
-            add_count = 0
             for j in range(len(conv_list[i].weight.data.cpu().numpy())):
                 if np.sum(np.abs(ch_mask[i].mask[j])) < 25 * (count + 1) + 1:
                     ch_mask[i].mask[j] = 1
@@ -65,9 +64,7 @@ for count in range(add_channel_num):
                     if i != len(conv_list) - 1:
                         ch_mask[i + 1].mask[j, :] = 1
                         conv_list[i + 1].weight.data[:, j] = original_conv_list[i + 1].weight.data[:, j].clone()
-                    add_count += 1
-                    if add_count == 1:
-                        break
+                    break
 
             # 追加後重み分布の描画
             after_weight = [np.sum(conv_list[i].weight.data[k].cpu().numpy()) for k
