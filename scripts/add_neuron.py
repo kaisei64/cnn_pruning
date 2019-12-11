@@ -56,4 +56,4 @@ for count in range(add_neuron_num):
                                    after_weight)
 
     # パラメータの保存
-    # parameter_save('./result/CIFAR10_dense_conv_prune.pkl', new_net)
+    parameter_save('./result/CIFAR10_dense_conv_prune.pkl', new_net)
