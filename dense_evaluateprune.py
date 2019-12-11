@@ -40,9 +40,10 @@ class DenseEvaluatePrune:
         # 追加
         with torch.no_grad():
             for j in range(len(dense_list[dense_num].weight.data.cpu().numpy())):
-                if np.all(de_mask[dense_num].mask[:, j] == 0):
-                    de_mask[dense_num].mask[:, j] = 1
-                    dense_list[dense_num].weight.data[:, j] = torch.tensor(gene, device=device, dtype=dtype)
+                if np.all(de_mask[dense_num].mask[j, :] == 0) and np.all(de_mask[dense_num + 1].mask[:, j] == 0):
+                    de_mask[dense_num].mask[j, :], de_mask[dense_num + 1].mask[:, j] = 1, 1
+                    dense_list[dense_num].weight.data[j, :] = torch.tensor(gene[0], device=device, dtype=dtype)
+                    dense_list[dense_num + 1].weight.data[:, j] = torch.tensor(gene[1], device=device, dtype=dtype)
                     print(f'add_neuron_dense{dense_num + 1}')
                     break
 
