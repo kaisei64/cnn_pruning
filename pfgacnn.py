@@ -65,19 +65,19 @@ class PfgaCnn:
         ch_seed = [i for i in range(len(c1[0]))]
         val_seed = [i for i in range(len(c1[0][0]))]
         # 一点交叉(チャネルごと交換)
-        for i in range(len(c1[0])):
-            ch_cross_point1, ch_cross_point2 = random.choice(ch_seed), random.choice(ch_seed)
-            if np.random.rand() < 0.5:
-                c1[0][ch_cross_point1], c2[0][ch_cross_point2] = c2[0][ch_cross_point2], c1[0][ch_cross_point1]
-        # 二点交叉(チャネルの一部を交換)
         # for i in range(len(c1[0])):
         #     ch_cross_point1, ch_cross_point2 = random.choice(ch_seed), random.choice(ch_seed)
-        #     val_cross_point1, val_cross_point2 = random.choice(val_seed), random.choice(val_seed)
-        #     if val_cross_point1 > val_cross_point2:
-        #         val_cross_point1, val_cross_point2 = val_cross_point2, val_cross_point1
         #     if np.random.rand() < 0.5:
-        #         c1[0][ch_cross_point1][val_cross_point1:val_cross_point2] = c2[0][ch_cross_point2][val_cross_point1:val_cross_point2]
-        #         c2[0][ch_cross_point2][val_cross_point1:val_cross_point2] = c1[0][ch_cross_point1][val_cross_point1:val_cross_point2]
+        #         c1[0][ch_cross_point1], c2[0][ch_cross_point2] = c2[0][ch_cross_point2], c1[0][ch_cross_point1]
+        # 二点交叉(チャネルの一部を交換)
+        for i in range(len(c1[0])):
+            ch_cross_point1, ch_cross_point2 = random.choice(ch_seed), random.choice(ch_seed)
+            val_cross_point1, val_cross_point2 = random.choice(val_seed), random.choice(val_seed)
+            if val_cross_point1 > val_cross_point2:
+                val_cross_point1, val_cross_point2 = val_cross_point2, val_cross_point1
+            if np.random.rand() < 0.5:
+                c1[0][ch_cross_point1][val_cross_point1:val_cross_point2] = c2[0][ch_cross_point2][val_cross_point1:val_cross_point2]
+                c2[0][ch_cross_point2][val_cross_point1:val_cross_point2] = c1[0][ch_cross_point1][val_cross_point1:val_cross_point2]
         # 一様交叉
         # for i in range(len(c1[0])):
         #     uniform_mask1 = np.ones(c1[0][i].shape)
@@ -92,9 +92,9 @@ class PfgaCnn:
 
     def mutate(self, g):
         # 摂動
-        # if np.random.rand() < self.mutate_rate:
-        #     for i in range(len(g[0])):
-        #         g[0][i] = g[0][i] * 1.05
+        if np.random.rand() < self.mutate_rate:
+            for i in range(len(g[0])):
+                g[0][i] = g[0][i] * 1.05
         # 反転
         # if np.random.rand() < self.mutate_rate:
         #     for i in range(len(g[0])):
@@ -104,10 +104,10 @@ class PfgaCnn:
         #     for i in range(len(g[0])):
         #         g[0][i] = g[0][i, ::-1, ::-1]
         # 撹拌
-        if np.random.rand() < self.mutate_rate:
-            for i in range(len(g[0])):
-                g[0][i] = np.random.permutation(g[0][i])
-                g[0][i] = np.random.permutation(g[0][i].T)
+        # if np.random.rand() < self.mutate_rate:
+        #     for i in range(len(g[0])):
+        #         g[0][i] = np.random.permutation(g[0][i])
+        #         g[0][i] = np.random.permutation(g[0][i].T)
         # 欠失
         # if np.random.rand() < self.mutate_rate:
         #     for i in range(len(g[0])):
