@@ -33,7 +33,7 @@ for i, dense in enumerate(dense_list):
     de_mask[i].mask = np.where(np.abs(dense.weight.data.clone().cpu().detach().numpy()) == 0, 0, 1)
 
 
-gen_num = 50
+gen_num = 10
 add_channel_num = 3
 optimizer = optim.SGD(new_net.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
 

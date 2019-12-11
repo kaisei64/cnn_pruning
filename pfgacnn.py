@@ -85,15 +85,16 @@ class PfgaCnn:
         #     np.random.shuffle(uniform_mask1)
         #     np.random.shuffle(uniform_mask1.T)
         #     uniform_mask2 = np.where(uniform_mask1 == 0, 1, 0)
-        #     c1[0][i], c2[0][i] = c1[0][i] * uniform_mask1 + c2[0][i] * uniform_mask2, c1[0][i] * uniform_mask2 + c2[0][i] * uniform_mask1
+        #     if np.random.rand() < 0.5:
+        #         c1[0][i], c2[0][i] = c1[0][i] * uniform_mask1 + c2[0][i] * uniform_mask2, c1[0][i] * uniform_mask2 + c2[0][i] * uniform_mask1
         c1[1], c2[1] = None, None
         return c1, c2
 
     def mutate(self, g):
         # 摂動
-        if np.random.rand() < self.mutate_rate:
-            for i in range(len(g[0])):
-                g[0][i] = g[0][i] * 1.05
+        # if np.random.rand() < self.mutate_rate:
+        #     for i in range(len(g[0])):
+        #         g[0][i] = g[0][i] * 1.05
         # 反転
         # if np.random.rand() < self.mutate_rate:
         #     for i in range(len(g[0])):
@@ -103,10 +104,10 @@ class PfgaCnn:
         #     for i in range(len(g[0])):
         #         g[0][i] = g[0][i, ::-1, ::-1]
         # 撹拌
-        # if np.random.rand() < self.mutate_rate:
-        #     for i in range(len(g[0])):
-        #         g[0][i] = np.random.permutation(g[0][i])
-        #         g[0][i] = np.random.permutation(g[0][i].T)
+        if np.random.rand() < self.mutate_rate:
+            for i in range(len(g[0])):
+                g[0][i] = np.random.permutation(g[0][i])
+                g[0][i] = np.random.permutation(g[0][i].T)
         # 欠失
         # if np.random.rand() < self.mutate_rate:
         #     for i in range(len(g[0])):
@@ -135,8 +136,8 @@ class PfgaCnn:
         genelist = p1, p2, c1, c2
         count = 0
         for i in genelist:
-            if i[1] is None:
-                i[1] = self.evaluate_func(i[0], count, self.conv_num)
+            # if i[1] is None:
+            i[1] = self.evaluate_func(i[0], count, self.conv_num)
             count += 1
 
         # rule-1:both child is better than both parent, remain both child and better 1 parent
