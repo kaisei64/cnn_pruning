@@ -27,7 +27,7 @@ def neuron_importance(dense_num):
     return de_high_20[dense_num], de_low_5[dense_num]
 
 
-def channel_euclidean_distance(ne1, ne2):
+def neuron_euclidean_distance(ne1, ne2):
     return pow(np.linalg.norm(ne1 - ne2), 2)
 
 
