@@ -76,8 +76,8 @@ class PfgaCnn:
             if val_cross_point1 > val_cross_point2:
                 val_cross_point1, val_cross_point2 = val_cross_point2, val_cross_point1
             if np.random.rand() < 0.5:
-                c1[0][ch_cross_point1][val_cross_point1:val_cross_point2] = c2[0][ch_cross_point2][val_cross_point1:val_cross_point2]
-                c2[0][ch_cross_point2][val_cross_point1:val_cross_point2] = c1[0][ch_cross_point1][val_cross_point1:val_cross_point2]
+                c1[0][ch_cross_point1][val_cross_point1:val_cross_point2], c2[0][ch_cross_point2][val_cross_point1:val_cross_point2]\
+                    = c2[0][ch_cross_point2][val_cross_point1:val_cross_point2], c1[0][ch_cross_point1][val_cross_point1:val_cross_point2]
         # 一様交叉
         # for i in range(len(c1[0])):
         #     uniform_mask1 = np.ones(c1[0][i].shape)
@@ -94,7 +94,7 @@ class PfgaCnn:
         # 摂動
         if np.random.rand() < self.mutate_rate:
             for i in range(len(g[0])):
-                g[0][i] = g[0][i] * 1.05
+                g[0][i] *= 1.05
         # 反転
         # if np.random.rand() < self.mutate_rate:
         #     for i in range(len(g[0])):
