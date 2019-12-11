@@ -62,7 +62,7 @@ class DenseEvaluatePrune:
 
         similarity = 0
         # ニューロン間の類似度
-        for i in range(dense_list[dense_num].out_channels):
+        for i in range(dense_list[dense_num].in_features):
             similarity += neuron_euclidean_distance(gene, dense_list[dense_num].weight.data.cpu().detach().numpy()[i])
             # similarity += cos_sim(gene, dense_list[dense_num].weight.data.cpu().detach().numpy()[i])
 
