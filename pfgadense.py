@@ -34,7 +34,10 @@ class PfgaDense:
         # 選択されるニューロンのindex
         # de_index = random.choice(np.concatenate([de_high10, de_low5]))
         de_index = random.choice(de_high)
-        new_gene.append(dense_list[self.dense_num].weight.data.clone().cpu().detach().numpy()[:, de_index])
+        gene = list()
+        gene.append(dense_list[self.dense_num].weight.data.clone().cpu().detach().numpy()[de_index, :])
+        gene.append(dense_list[self.dense_num + 1].weight.data.clone().cpu().detach().numpy()[:, de_index])
+        new_gene.append(gene)
         new_gene.append(None)
         self.family.append(new_gene)
 
