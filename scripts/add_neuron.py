@@ -44,9 +44,10 @@ for count in range(add_neuron_num):
         # 層ごとに１ニューロンごと追加
         with torch.no_grad():
             for j in range(len(dense_list[i].weight.data.cpu().numpy())):
-                if np.all(de_mask[i].mask[:, j] == 0):
-                    de_mask[i].mask[:, j] = 1
-                    dense_list[i].weight.data[:, j] = torch.tensor(best[i][0], device=device, dtype=dtype)
+                if np.all(de_mask[i].mask[j, :] == 0) and np.all(de_mask[i + 1].mask[:, j] == 0):
+                    de_mask[i].mask[j, :], de_mask[i + 1].mask[:, j] = 1, 1
+                    dense_list[i].weight.data[j, :] = torch.tensor(best[i][0][0], device=device, dtype=dtype)
+                    dense_list[i + 1].weight.data[:, j] = torch.tensor(best[i][0][1], device=device, dtype=dtype)
                     break
 
         # 追加後重み分布の描画
