@@ -46,7 +46,6 @@ class CnnEvaluatePrune:
 
         # 追加
         with torch.no_grad():
-            add_count = 0
             for j in range(len(conv_list[conv_num].weight.data.cpu().numpy())):
                 if np.sum(np.abs(ch_mask[conv_num].mask[j])) < 26:
                     ch_mask[conv_num].mask[j] = 1
@@ -54,8 +53,6 @@ class CnnEvaluatePrune:
                     if conv_num != len(conv_list) - 1:
                         ch_mask[conv_num + 1].mask[j, :] = 1
                         conv_list[conv_num + 1].weight.data[:, j] = original_conv_list[conv_num + 1].weight.data[:, j].clone()
-                    add_count += 1
-                    if add_count == 1:
                         print(f'add_filter_conv{conv_num + 1}')
                         break
 
