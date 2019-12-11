@@ -4,7 +4,6 @@ import copy
 import random
 from neuron_importance import neuron_importance
 from result_save_visualization import *
-import torch
 
 # パラメータ利用
 net = parameter_use('./result/CIFAR10_original_train_epoch150.pkl')
@@ -30,6 +29,7 @@ class PfgaDense:
         # a_min = np.min(a)
         # # -1から+1の範囲に正規化
         # y = 2 * (a - a_min) / (a_max - a_min) - 1
+        # new_gene.append(y)
         # ニューロン重要度が上位10%の個体を初期個体にする
         de_high, de_low = neuron_importance(self.dense_num)
         # 選択されるニューロンのindex
