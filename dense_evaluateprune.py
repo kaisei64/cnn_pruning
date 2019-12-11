@@ -62,9 +62,12 @@ class DenseEvaluatePrune:
 
         similarity = 0
         # ニューロン間の類似度
-        for i in range(dense_list[dense_num].in_features):
-            similarity += neuron_euclidean_distance(gene, dense_list[dense_num].weight.data.cpu().detach().numpy()[i])
-            # similarity += cos_sim(gene, dense_list[dense_num].weight.data.cpu().detach().numpy()[i])
+        for param1, param2 in zip(dense_list[dense_num].weight.data.clone().cpu().numpy(),
+                                  torch.t(dense_list[dense_num + 1].weight.data.clone()).cpu().numpy()):
+            similarity += neuron_euclidean_distance(gene[0], np.sum(np.abs(param1)))
+            similarity += neuron_euclidean_distance(gene[1], np.sum(np.abs(param2)))
+            # similarity += cos_sim(gene[0], np.sum(np.abs(param1)))
+            # similarity += cos_sim(gene[1], np.sum(np.abs(param2)))
 
         f_num_epochs = 1
         eva = 0
@@ -88,4 +91,4 @@ class DenseEvaluatePrune:
             input_data = [g_count, epoch + 1, avg_val_loss, avg_val_acc]
             result_save('./result/result_add_neurons_not_train.csv', data_dict, input_data)
 
-        return eva + similarity
+        return 10000 * eva + similarity / 100000
