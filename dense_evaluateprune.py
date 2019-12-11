@@ -1,13 +1,14 @@
 from dense_mask_generator import DenseMaskGenerator
 from result_save_visualization import *
 from dataset import *
+from neuron_importance import neuron_euclidean_distance, cos_sim
 import torch
 import numpy as np
 
 data_dict = {'attribute': [], 'epoch': [], 'val_loss': [], 'val_acc': []}
 
 # 枝刈り前パラメータ利用
-original_net = parameter_use('./result/CIFAR10_original_train.pkl')
+original_net = parameter_use('./result/CIFAR10_original_train_epoch150.pkl')
 
 # 全結合層のリスト
 original_dense_list = [original_net.classifier[i] for i in range(len(original_net.classifier)) if
@@ -23,7 +24,7 @@ class DenseEvaluatePrune:
 
     def train(self, gene, g_count, dense_num):
         # 枝刈り後パラメータ利用
-        self.network = parameter_use('./result/CIFAR10_dense_prune.pkl')
+        self.network = parameter_use('./result/CIFAR10_dense_conv_prune.pkl')
         for param in self.network.features.parameters():
             param.requires_grad = False
 
@@ -38,17 +39,12 @@ class DenseEvaluatePrune:
 
         # 追加
         with torch.no_grad():
-            add_count = 0
-            for i in range(len(dense_list)):
-                if i == dense_num:
-                    for j in range(len(dense_list[i].weight.data.cpu().numpy())):
-                        if np.all(de_mask[i].mask[:, j] == 0):
-                            de_mask[i].mask[:, j] = 1
-                            dense_list[i].weight.data[:, j] = torch.tensor(gene, device=device, dtype=dtype)
-                            add_count += 1
-                            if add_count == 1:
-                                print(f'add_neuron_dense{dense_num + 1}')
-                                break
+            for j in range(len(dense_list[dense_num].weight.data.cpu().numpy())):
+                if np.all(de_mask[dense_num].mask[:, j] == 0):
+                    de_mask[dense_num].mask[:, j] = 1
+                    dense_list[dense_num].weight.data[:, j] = torch.tensor(gene, device=device, dtype=dtype)
+                    print(f'add_neuron_dense{dense_num + 1}')
+                    break
 
         # パラメータの割合
         weight_ratio = [np.count_nonzero(dense.weight.cpu().detach().numpy()) /
@@ -64,9 +60,14 @@ class DenseEvaluatePrune:
         for i in range(len(dense_list)):
             print(f'neuron_number{i + 1}: {neuron_num_new[i]}', end=", " if i != len(dense_list) - 1 else "\n")
 
+        similarity = 0
+        # ニューロン間の類似度
+        for i in range(dense_list[dense_num].out_channels):
+            similarity += neuron_euclidean_distance(gene, dense_list[dense_num].weight.data.cpu().detach().numpy()[i])
+            # similarity += cos_sim(gene, dense_list[dense_num].weight.data.cpu().detach().numpy()[i])
+
         f_num_epochs = 1
         eva = 0
-        # finetune
         for epoch in range(f_num_epochs):
             # val
             self.network.eval()
@@ -87,4 +88,4 @@ class DenseEvaluatePrune:
             input_data = [g_count, epoch + 1, avg_val_loss, avg_val_acc]
             result_save('./result/result_add_neurons_not_train.csv', data_dict, input_data)
 
-        return 1 / eva
+        return eva + similarity
