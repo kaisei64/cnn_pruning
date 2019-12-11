@@ -59,8 +59,7 @@ class PfgaDense:
         return self.copy_gene(self.family.pop(np.random.randint(0, len(self.family))))
 
     def crossover(self, p1, p2):
-        c1 = self.copy_gene(p1)
-        c2 = self.copy_gene(p2)
+        c1, c2 = self.copy_gene(p1), self.copy_gene(p2)
         de_seed = [i for i in range(len(c1[0][0]))]
         # 一点交叉
         if np.random.rand() < 0.5:
@@ -80,8 +79,7 @@ class PfgaDense:
         # uniform_mask2 = np.where(uniform_mask1 == 0, 1, 0)
         # if np.random.rand() < 0.5:
         #     c1[0], c2[0] = c1[0] * uniform_mask1 + c2[0] * uniform_mask2, c1[0] * uniform_mask2 + c2[0] * uniform_mask1
-        c1[1] = None
-        c2[1] = None
+        c1[1], c2[1] = None, None
         return c1, c2
 
     def mutate(self, g):
@@ -109,8 +107,7 @@ class PfgaDense:
         while len(self.family) < 2:
             self.add_new_population()
 
-        p1 = self.select_and_delete_gene()
-        p2 = self.select_and_delete_gene()
+        p1, p2 = self.select_and_delete_gene(), self.select_and_delete_gene()
 
         c1, c2 = self.crossover(p1, p2)
 
