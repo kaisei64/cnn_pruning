@@ -53,8 +53,8 @@ class CnnEvaluatePrune:
                     if conv_num != len(conv_list) - 1:
                         ch_mask[conv_num + 1].mask[j, :] = 1
                         conv_list[conv_num + 1].weight.data[:, j] = original_conv_list[conv_num + 1].weight.data[:, j].clone()
-                        print(f'add_filter_conv{conv_num + 1}')
-                        break
+                    print(f'add_filter_conv{conv_num + 1}')
+                    break
 
         # パラメータの割合
         weight_ratio = [np.count_nonzero(conv.weight.cpu().detach().numpy()) /
