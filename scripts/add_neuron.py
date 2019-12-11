@@ -31,9 +31,9 @@ for i in range(len(dense_list)):
     parameter_distribution_vis(f'./figure/dis_vis/dense{i + 1}/before_weight_distribution{i + 1}.png', before_weight)
 
 for count in range(add_neuron_num):
-    ev = [DenseEvaluatePrune() for _ in range(len(dense_list))]
-    ga = [PfgaDense(dense.out_features, i, evaluate_func=ev[i].evaluate, better_high=False, mutate_rate=0.1)
-          for i, dense in enumerate(dense_list)]
+    ev = [DenseEvaluatePrune() for _ in range(len(dense_list) - 1)]
+    ga = [PfgaDense(dense_list[i].out_features, i, evaluate_func=ev[i].evaluate, better_high=False, mutate_rate=0.1)
+          for i in range(len(dense_list) - 1)]
     best = [list() for _ in range(len(ga))]
     for i in range(len(ga)):
         while ga[i].generation_num < gen_num:
