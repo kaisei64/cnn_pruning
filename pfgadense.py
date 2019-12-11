@@ -4,6 +4,7 @@ import copy
 import random
 from neuron_importance import neuron_importance
 from result_save_visualization import *
+import torch
 
 # パラメータ利用
 net = parameter_use('./result/CIFAR10_original_train_epoch150.pkl')
@@ -63,47 +64,70 @@ class PfgaDense:
 
     def crossover(self, p1, p2):
         c1, c2 = self.copy_gene(p1), self.copy_gene(p2)
-        de_seed = [i for i in range(len(c1[0][0]))]
+        de_seed1, de_seed2 = [i for i in range(len(c1[0][0]))], [i for i in range(len(c1[0][1]))]
         # 一点交叉
         if np.random.rand() < 0.5:
-            de_cross_point1, de_cross_point2 = random.choice(de_seed), random.choice(de_seed)
-            c1[0][de_cross_point1], c2[0][de_cross_point2] = c2[0][de_cross_point2], c1[0][de_cross_point1]
+            de_cross_point = random.choice(de_seed1)
+            c1[0][0][de_cross_point:], c2[0][0][de_cross_point:] = c2[0][0][de_cross_point:], c1[0][0][de_cross_point:]
+            de_cross_point = random.choice(de_seed2)
+            c1[0][1][:de_cross_point], c2[0][1][:de_cross_point] = c2[0][1][:de_cross_point], c1[0][1][:de_cross_point]
         # 二点交叉(チャネルの一部を交換)
-        # de_cross_point1, de_cross_point2 = random.choice(de_seed), random.choice(de_seed)
+        # de_cross_point1, de_cross_point2 = random.choice(de_seed1), random.choice(de_seed1)
         # if de_cross_point1 > de_cross_point2:
         #     de_cross_point1, de_cross_point2 = de_cross_point2, de_cross_point1
         # if np.random.rand() < 0.5:
-        #     c1[0][de_cross_point1:de_cross_point2] = c2[0][de_cross_point1:de_cross_point2]
-        #     c2[0][de_cross_point1:de_cross_point2] = c1[0][de_cross_point1:de_cross_point2]
+        #     c1[0][0][de_cross_point1:de_cross_point2] = c2[0][0][de_cross_point1:de_cross_point2]
+        #     c2[0][0][de_cross_point1:de_cross_point2] = c1[0][0][de_cross_point1:de_cross_point2]
+        #     de_cross_point1, de_cross_point2 = random.choice(de_seed2), random.choice(de_seed2)
+        #     if de_cross_point1 > de_cross_point2:
+        #         de_cross_point1, de_cross_point2 = de_cross_point2, de_cross_point1
+        #     c1[0][1][de_cross_point1:de_cross_point2] = c2[0][1][de_cross_point1:de_cross_point2]
+        #     c2[0][1][de_cross_point1:de_cross_point2] = c1[0][1][de_cross_point1:de_cross_point2]
         # 一様交叉
-        # uniform_mask1 = np.ones(c1[0].shape)
-        # uniform_mask1[:int(len(c1[0]) / 2)] = 0
+        # uniform_mask1 = np.ones(c1[0][0].shape)
+        # uniform_mask1[:int(len(c1[0][0]) / 2)] = 0
         # np.random.shuffle(uniform_mask1)
         # uniform_mask2 = np.where(uniform_mask1 == 0, 1, 0)
         # if np.random.rand() < 0.5:
-        #     c1[0], c2[0] = c1[0] * uniform_mask1 + c2[0] * uniform_mask2, c1[0] * uniform_mask2 + c2[0] * uniform_mask1
+        #     c1[0][0], c2[0][0] = \
+        #         c1[0][0] * uniform_mask1 + c2[0][0] * uniform_mask2, c1[0][0] * uniform_mask2 + c2[0][0] * uniform_mask1
+        # uniform_mask1 = np.ones(c1[0][1].shape)
+        # uniform_mask1[:int(len(c1[0][1]) / 2)] = 0
+        # np.random.shuffle(uniform_mask1)
+        # uniform_mask2 = np.where(uniform_mask1 == 0, 1, 0)
+        # if np.random.rand() < 0.5:
+        #     c1[0][1], c2[0][1] = \
+        #         c1[0][1] * uniform_mask1 + c2[0][1] * uniform_mask2, c1[0][1] * uniform_mask2 + c2[0][1] * uniform_mask1
         c1[1], c2[1] = None, None
         return c1, c2
 
     def mutate(self, g):
         # 摂動
         if np.random.rand() < self.mutate_rate:
-            g[0] = g[0] * 1.05
+            g[0][0] *= 1.05
+            g[0][1] *= 1.05
         # 反転
         # if np.random.rand() < self.mutate_rate:
-        #     g[0] = -g[0]
+        #     g[0][0] = -g[0][0]
+        #     g[0][1] = -g[0][1]
         # 逆位
         # if np.random.rand() < self.mutate_rate:
-        #     g[0] = g[0][::-1]
+        #     g[0][0] = g[0][0][::-1]
+        #     g[0][1] = g[0][1][::-1]
         # 撹拌
         # if np.random.rand() < self.mutate_rate:
-        #     g[0] = np.random.permutation(g[0])
+        #     g[0][0] = np.random.permutation(g[0][0])
+        #     g[0][1] = np.random.permutation(g[0][1])
         # 欠失
         # if np.random.rand() < self.mutate_rate:
-        #     deletion_mask = np.ones(g[0].shape)
-        #     deletion_mask[:int(len(g[0]) / 2)] = 0
+        #     deletion_mask = np.ones(g[0][0].shape)
+        #     deletion_mask[:int(len(g[0][0]) / 2)] = 0
         #     np.random.shuffle(deletion_mask)
-        #     g[0] = g[0] * deletion_mask
+        #     g[0][0] *= deletion_mask
+        #     deletion_mask = np.ones(g[0][1].shape)
+        #     deletion_mask[:int(len(g[0][1]) / 2)] = 0
+        #     np.random.shuffle(deletion_mask)
+        #     g[0][1] *= deletion_mask
         return g
 
     def next_generation(self):
