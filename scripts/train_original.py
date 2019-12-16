@@ -9,7 +9,7 @@ import torchvision.models as models
 import torch.optim as optim
 import time
 
-net = models.alexnet(num_classes=100).to(device)
+net = models.alexnet(num_classes=10).to(device)
 optimizer = optim.SGD(net.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
 num_epochs = 150
 
