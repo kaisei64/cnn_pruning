@@ -48,8 +48,6 @@ for epoch in range(num_epochs):
     print(f'epoch [{epoch + 1}/{num_epochs}], time: {process_time:.4f}, train_loss: {avg_train_loss:.4f}'
           f', train_acc: {avg_train_acc:.4f}, 'f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
 
-    for param in net.parameters():
-        print(param.shape)
     # 結果の保存
     input_data = [epoch + 1, process_time, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
     result_save('./result/original_train_parameter_epoch150_mymodel.csv', data_dict, input_data)
