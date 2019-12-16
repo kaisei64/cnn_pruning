@@ -14,7 +14,7 @@ import time
 data_dict = {'epoch': [], 'time': [], 'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
 
 # パラメータ利用, 全結合パラメータの凍結
-new_net = parameter_use('./result/original_train_mymodel_epoch150.pkl')
+new_net = parameter_use('./result/original_train_epoch150_mymodel.pkl')
 for param in new_net.parameters():
     param.requires_grad = False
 
@@ -108,7 +108,7 @@ for count in range(1, inv_prune_ratio):
 
         # 結果の保存
         input_data = [epoch + 1, process_time, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
-        result_save('./result/de_prune_mymodel_parameter.csv', data_dict, input_data)
+        result_save('./result/de_prune_parameter_mymodel.csv', data_dict, input_data)
 
 # パラメータの保存
 parameter_save('./result/dense_prune_mymodel.pkl', new_net)
