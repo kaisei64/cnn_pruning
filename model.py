@@ -1,5 +1,6 @@
-import torch
-import torch.nn as nn
+# import torch
+# import torch.nn as nn
+from dataset import *
 # import torch.nn.functional as F
 
 
@@ -55,30 +56,38 @@ import torch.nn as nn
 class AlexNet(nn.Module):
     def __init__(self, num_classes):
         super(AlexNet, self).__init__()
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=11, stride=4, padding=5)
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=11, stride=4, padding=2)
         self.conv2 = nn.Conv2d(64, 192, kernel_size=5, padding=2)
         self.conv3 = nn.Conv2d(192, 384, kernel_size=3, padding=1)
         self.conv4 = nn.Conv2d(384, 256, kernel_size=3, padding=1)
         self.conv5 = nn.Conv2d(256, 256, kernel_size=3, padding=1)
-        self.conv1_coef = torch.ones(64)
-        self.conv2_coef = torch.ones(192)
-        self.conv3_coef = torch.ones(384)
-        self.conv4_coef = torch.ones(256)
-        self.conv5_coef = torch.ones(256)
+        self.conv1_coef = nn.Parameter(torch.randn(64, device=device, dtype=dtype))
+        self.conv2_coef = nn.Parameter(torch.ones(192, device=device, dtype=dtype))
+        self.conv3_coef = nn.Parameter(torch.ones(384, device=device, dtype=dtype))
+        self.conv4_coef = nn.Parameter(torch.ones(256, device=device, dtype=dtype))
+        self.conv5_coef = nn.Parameter(torch.ones(256, device=device, dtype=dtype))
         self.pool = nn.MaxPool2d(kernel_size=3, stride=2)
         self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
         self.fc1 = nn.Linear(256 * 6 * 6, 4096)
-        self.fc1 = nn.Linear(4096, 4096)
-        self.fc2 = nn.Linear(4096, num_classes)
+        self.fc2 = nn.Linear(4096, 4096)
+        self.fc3 = nn.Linear(4096, num_classes)
         self.drop = nn.Dropout()
         self.activation = nn.ReLU(inplace=True)
 
-    def forward(self, x, flag, coef):
-        x = self.pool(self.activation(self.conv1(x) * self.conv1_coef))
-        x = self.pool(self.activation(self.conv2(x) * self.conv2_coef))
-        x = self.activation(self.conv3(x) * self.conv3_coef)
-        x = self.activation(self.conv4(x) * self.conv4_coef)
-        x = self.pool(self.activation(self.conv5(x) * self.conv5_coef))
+    def forward(self, x, flag):
+        conv1_coef = self.conv1_coef.unsqueeze(0).unsqueeze(2).unsqueeze(3)
+        conv2_coef = self.conv2_coef.unsqueeze(0).unsqueeze(2).unsqueeze(3)
+        conv3_coef = self.conv3_coef.unsqueeze(0).unsqueeze(2).unsqueeze(3)
+        conv4_coef = self.conv4_coef.unsqueeze(0).unsqueeze(2).unsqueeze(3)
+        conv5_coef = self.conv5_coef.unsqueeze(0).unsqueeze(2).unsqueeze(3)
+        x = self.pool(self.activation(self.conv1(x) * conv1_coef)) if flag is True \
+            else self.pool(self.activation(self.conv1(x)))
+        x = self.pool(self.activation(self.conv2(x) * conv2_coef)) if flag is True \
+            else self.pool(self.activation(self.conv2(x)))
+        x = self.activation(self.conv3(x) * conv3_coef) if flag is True else self.activation(self.conv3(x))
+        x = self.activation(self.conv4(x) * conv4_coef) if flag is True else self.activation(self.conv4(x))
+        x = self.pool(self.activation(self.conv5(x) * conv5_coef)) if flag is True \
+            else self.pool(self.activation(self.conv5(x)))
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
         x = self.activation(self.fc1(self.drop(x)))
