@@ -23,7 +23,7 @@ for epoch in range(num_epochs):
     for i, (images, labels) in enumerate(train_loader):
         images, labels = images.to(device), labels.to(device)
         optimizer.zero_grad()
-        outputs = net(images)
+        outputs = net(images, False)
         loss = criterion(outputs, labels)
         train_loss += loss.item()
         train_acc += (outputs.max(1)[1] == labels).sum().item()
@@ -38,7 +38,7 @@ for epoch in range(num_epochs):
         for images, labels in test_loader:
             # view()での変換をしない
             labels = labels.to(device)
-            outputs = net(images.to(device))
+            outputs = net(images.to(device), False)
             loss = criterion(outputs, labels)
             val_loss += loss.item()
             val_acc += (outputs.max(1)[1] == labels).sum().item()
@@ -48,6 +48,8 @@ for epoch in range(num_epochs):
     print(f'epoch [{epoch + 1}/{num_epochs}], time: {process_time:.4f}, train_loss: {avg_train_loss:.4f}'
           f', train_acc: {avg_train_acc:.4f}, 'f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
 
+    for param in net.parameters():
+        print(param.shape)
     # 結果の保存
     input_data = [epoch + 1, process_time, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
     result_save('./result/original_train_mymodel_parameter_epoch150.csv', data_dict, input_data)
