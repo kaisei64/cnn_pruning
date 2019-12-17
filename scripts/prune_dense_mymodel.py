@@ -2,7 +2,7 @@ import os
 import sys
 pardir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(pardir)
-from channel_mask_generator import ChannelMaskGenerator
+from dense_mask_generator import DenseMaskGenerator
 from dataset import *
 from result_save_visualization import *
 import torch
@@ -14,49 +14,58 @@ import time
 data_dict = {'epoch': [], 'time': [], 'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
 
 # パラメータ利用, 全結合パラメータの凍結
-new_net = parameter_use('./result/dense_prune_mymodel.pkl')
-for param in new_net.parameters():
-    param.requires_grad = False
+new_net = parameter_use('./result/original_train_epoch150_mymodel.pkl')
+# 全結合層、畳み込み層のリスト
+dense_list = [module for module in new_net.modules() if isinstance(module, nn.Linear)]
+dense_count = len(dense_list)
+conv_list = [module for module in new_net.modules() if isinstance(module, nn.Conv2d)]
+for conv in conv_list:
+    conv.weight.requires_grad = False
 
 optimizer = optim.SGD(new_net.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
 
-# 畳み込み層のリスト
-conv_list = [new_net.features[i] for i in range(len(new_net.features)) if isinstance(new_net.features[i], nn.Conv2d)]
-conv_count = len(conv_list)
 # マスクのオブジェクト
-ch_mask = [ChannelMaskGenerator() for _ in range(conv_count)]
+de_mask = [DenseMaskGenerator() for _ in dense_list]
 inv_prune_ratio = 50
 
-# channel_pruning
+# weight_pruning
 for count in range(1, inv_prune_ratio):
-    print(f'\nchannel pruning: {count}')
-    # ノルムの合計を保持
-    channel_l1norm_for_each_layer = [list() for _ in range(conv_count)]
+    print(f'\nweight pruning: {count}')
+    # 全結合層を可視化
+    # if count == 1 or count == 10 or count == 18:
+    #     param_list = [torch.t(new_net.fc1.weight.data).cpu().numpy(), torch.t(new_net.fc2.weight.data).cpu().numpy()]
+    #     dense_vis(param_list)
 
-    # ノルムの取得, 昇順にソート
-    for i, conv in enumerate(conv_list):
-        channel_l1norm_for_each_layer[i] = [np.sum(torch.abs(param).cpu().detach().numpy()) for param in conv.weight]
-        channel_l1norm_for_each_layer[i].sort()
+    # 重みを１次元ベクトル化
+    weight_vector = [np.reshape(torch.abs(dense.weight.data.clone()).cpu().detach().numpy(),
+                                (1, dense_list[i].in_features * dense_list[i].out_features)).squeeze()
+                     for i, dense in enumerate(dense_list)]
+
+    # 昇順にソート
+    for i in range(len(weight_vector)):
+        weight_vector[i].sort()
+
+    # 刈る基準の閾値を格納
+    threshold = [weight_vector[i][int(dense_list[i].in_features * dense_list[i].out_features / inv_prune_ratio * count) - 1]
+                 for i in range(dense_count)]
 
     # 枝刈り本体
     with torch.no_grad():
-        for i in range(len(conv_list)):
-            threshold = channel_l1norm_for_each_layer[i][int(conv_list[i].out_channels / inv_prune_ratio * count) - 1]
-            save_mask = ch_mask[i].generate_mask(conv_list[i].weight.data.clone(),
-                                                 None if i == 0 else conv_list[i - 1].weight.data.clone(), threshold)
-            conv_list[i].weight.data *= torch.tensor(save_mask, device=device, dtype=dtype)
+        for i, dense in enumerate(dense_list):
+            save_mask = de_mask[i].generate_mask(dense.weight.data.clone(), threshold[i])
+            dense.weight.data *= torch.tensor(save_mask, device=device, dtype=dtype)
 
     # パラメータの割合
-    weight_ratio = [np.count_nonzero(conv.weight.cpu().detach().numpy()) / np.size(conv.weight.cpu().detach().numpy())
-                    for conv in conv_list]
+    weight_ratio = [np.count_nonzero(dense.weight.cpu().detach().numpy()) / np.size(dense.weight.cpu().detach().numpy())
+                    for dense in dense_list]
 
-    # 枝刈り後のチャネル数
-    channel_num_new = [conv.out_channels - ch_mask[i].channel_number(conv.weight) for i, conv in enumerate(conv_list)]
+    # 枝刈り後のニューロン数
+    neuron_num_new = [dense_list[i].in_features - de_mask[i].neuron_number(torch.t(dense.weight)) for i, dense in enumerate(dense_list)]
 
-    for i in range(conv_count):
-        print(f'conv{i + 1}_param: {weight_ratio[i]:.4f}', end=", " if i != conv_count - 1 else "\n")
-    for i in range(conv_count):
-        print(f'channel_number{i + 1}: {channel_num_new[i]}', end=", " if i != conv_count - 1 else "\n")
+    for i in range(len(dense_list)):
+        print(f'dense{i+1}_param: {weight_ratio[i]:.4f}', end=", " if i != dense_count - 1 else "\n"if i != dense_count - 1 else "\n")
+    for i in range(len(dense_list)):
+        print(f'neuron_number{i+1}: {neuron_num_new[i]}', end=", " if i != dense_count - 1 else "\n"if i != dense_count - 1 else "\n")
 
     f_num_epochs = 10
     # finetune
@@ -75,8 +84,8 @@ for count in range(1, inv_prune_ratio):
             loss.backward()
             optimizer.step()
             with torch.no_grad():
-                for j, conv in enumerate(conv_list):
-                    conv.weight.data *= torch.tensor(ch_mask[j].mask, device=device, dtype=dtype)
+                for j, dense in enumerate(dense_list):
+                    dense.weight.data *= torch.tensor(de_mask[j].mask, device=device, dtype=dtype)
         avg_train_loss, avg_train_acc = train_loss / len(train_loader.dataset), train_acc / len(train_loader.dataset)
 
         # val
@@ -84,22 +93,20 @@ for count in range(1, inv_prune_ratio):
         val_loss, val_acc = 0, 0
         with torch.no_grad():
             for images, labels in test_loader:
-                labels = labels.to(device)
-                outputs = new_net(images.to(device), False)
+                images, labels = images.to(device), labels.to(device)
+                outputs = new_net(images, False)
                 loss = criterion(outputs, labels)
                 val_loss += loss.item()
                 val_acc += (outputs.max(1)[1] == labels).sum().item()
         avg_val_loss, avg_val_acc = val_loss / len(test_loader.dataset), val_acc / len(test_loader.dataset)
-
         process_time = time.time() - start
 
-        print(f'epoch [{epoch + 1}/{f_num_epochs}], time: {process_time:.4f}, train_loss: {avg_train_loss:.4f}'
-              f', train_acc: {avg_train_acc:.4f}, 'f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
+        print(f'epoch [{epoch + 1}/{f_num_epochs}], train_loss: {avg_train_loss:.4f}, train_acc: {avg_train_acc:.4f}, '
+              f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
 
         # 結果の保存
         input_data = [epoch + 1, process_time, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
-        result_save('./result/dense_conv_prune_parameter_mymodel.csv', data_dict, input_data)
+        result_save('./result/de_prune_parameter_mymodel.csv', data_dict, input_data)
 
 # パラメータの保存
-parameter_save('./result/dense_conv_prune_mymodel.pkl', new_net)
-parameter_save('./result/dense_conv_prune_mymodel_copy.pkl', new_net)
+parameter_save('./result/dense_prune_mymodel.pkl', new_net)
