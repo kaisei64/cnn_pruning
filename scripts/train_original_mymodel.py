@@ -11,7 +11,7 @@ import time
 
 net = AlexNet(num_classes=10).to(device)
 optimizer = optim.SGD(net.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
-num_epochs = 150
+num_epochs = 100
 
 data_dict = {'epoch': [], 'time': [], 'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
 
@@ -56,10 +56,8 @@ for epoch in range(num_epochs):
 parameter_save('./result/original_train_epoch150_mymodel.pkl', net)
 
 # 勾配の保存
-conv_list = [net.features[i] for i in range(len(net.features)) if
-             isinstance(net.features[i], nn.Conv2d)]
-dense_list = [net.classifier[i] for i in range(len(net.classifier)) if
-              isinstance(net.classifier[i], nn.Linear)]
+conv_list = [module for module in net.modules() if isinstance(module, nn.Conv2d)]
+dense_list = [module for module in net.modules() if isinstance(module, nn.Linear)]
 for i, conv in enumerate(conv_list):
     parameter_save(f'./result/original_train_grad_conv{i}_mymodel.pkl', conv.weight.grad)
 for i, dense in enumerate(dense_list):
