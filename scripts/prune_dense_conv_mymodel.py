@@ -15,14 +15,15 @@ data_dict = {'epoch': [], 'time': [], 'train_loss': [], 'train_acc': [], 'val_lo
 
 # パラメータ利用, 全結合パラメータの凍結
 new_net = parameter_use('./result/dense_prune_mymodel.pkl')
-for param in new_net.parameters():
-    param.requires_grad = False
+# 全結合層、畳み込み層のリスト
+dense_list = [module for module in new_net.modules() if isinstance(module, nn.Linear)]
+conv_list = [module for module in new_net.modules() if isinstance(module, nn.Conv2d)]
+conv_count = len(conv_list)
+for dense in dense_list:
+    dense.weight.requires_grad = False
 
 optimizer = optim.SGD(new_net.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
 
-# 畳み込み層のリスト
-conv_list = [new_net.features[i] for i in range(len(new_net.features)) if isinstance(new_net.features[i], nn.Conv2d)]
-conv_count = len(conv_list)
 # マスクのオブジェクト
 ch_mask = [ChannelMaskGenerator() for _ in range(conv_count)]
 inv_prune_ratio = 50
@@ -90,7 +91,6 @@ for count in range(1, inv_prune_ratio):
                 val_loss += loss.item()
                 val_acc += (outputs.max(1)[1] == labels).sum().item()
         avg_val_loss, avg_val_acc = val_loss / len(test_loader.dataset), val_acc / len(test_loader.dataset)
-
         process_time = time.time() - start
 
         print(f'epoch [{epoch + 1}/{f_num_epochs}], time: {process_time:.4f}, train_loss: {avg_train_loss:.4f}'
