@@ -25,9 +25,9 @@ class CnnEvaluatePrune:
 
     def train(self, gene, g_count, conv_num):
         # 枝刈り後パラメータ利用
-        self.network = parameter_use('./result/CIFAR10_dense_conv_prune.pkl')
-        for param in self.network.classifier.parameters():
-            param.requires_grad = False
+        self.network = parameter_use('./result/dense_conv_prune_mymodel.pkl')
+        # for param in self.network.classifier.parameters():
+        #     param.requires_grad = False
         # optimizer = optim.SGD(self.network.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
 
         # 畳み込み層のリスト
@@ -109,7 +109,7 @@ class CnnEvaluatePrune:
             with torch.no_grad():
                 for images, labels in test_loader:
                     labels = labels.to(device)
-                    outputs = self.network(images.to(device))
+                    outputs = self.network(images.to(device), False)
                     loss = criterion(outputs, labels)
                     val_loss += loss.item()
                     val_acc += (outputs.max(1)[1] == labels).sum().item()
@@ -123,4 +123,5 @@ class CnnEvaluatePrune:
             input_data = [g_count, epoch + 1, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
             result_save('./result/add_channels_not_train_mymodel.csv', data_dict, input_data)
 
-        return 10000 * eva + similarity
+        # return 10000 * eva + similarity
+        return eva
