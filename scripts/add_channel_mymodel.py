@@ -5,8 +5,8 @@ sys.path.append(pardir)
 from channel_mask_generator import ChannelMaskGenerator
 from dense_mask_generator import DenseMaskGenerator
 from dataset import *
-from pfgacnn import PfgaCnn
-from cnn_evaluateprune import CnnEvaluatePrune
+from pfgacnn_mymodel import PfgaCnn
+from cnn_evaluateprune_mymodel import CnnEvaluatePrune
 from result_save_visualization import *
 import torch
 import torch.nn as nn
@@ -30,8 +30,8 @@ de_mask = [DenseMaskGenerator() for _ in range(len(dense_list))]
 for i, dense in enumerate(dense_list):
     de_mask[i].mask = np.where(np.abs(dense.weight.data.clone().cpu().detach().numpy()) == 0, 0, 1)
 
-gen_num = 10
-add_channel_num = 3
+gen_num = 30
+add_channel_num = 10
 optimizer = optim.SGD(new_net.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
 
 # 追加前重み分布の描画
@@ -46,6 +46,8 @@ for count in range(add_channel_num):
                   evaluate_func=ev[i].evaluate, better_high=False, mutate_rate=0.1) for i, conv in enumerate(conv_list)]
     best = [list() for _ in range(len(ga))]
     for i in range(len(ga)):
+        if i == 0 and count % 6 != 0 or i == 1 and count % 2 != 0 or i == 3 and count % 4 != 0 or i == 4 and count % 4 != 0:
+            continue
         while ga[i].generation_num < gen_num:
             ga[i].next_generation()
             best[i] = ga[i].best_gene()
@@ -89,10 +91,10 @@ for count in range(add_channel_num):
         # train
         new_net.train()
         train_loss, train_acc = 0, 0
-        for i, (images, labels) in enumerate(train_loader):
+        for _, (images, labels) in enumerate(train_loader):
             images, labels = images.to(device), labels.to(device)
             optimizer.zero_grad()
-            outputs = new_net(images)
+            outputs = new_net(images, True)
             loss = criterion(outputs, labels)
             train_loss += loss.item()
             train_acc += (outputs.max(1)[1] == labels).sum().item()
@@ -111,7 +113,7 @@ for count in range(add_channel_num):
         with torch.no_grad():
             for images, labels in test_loader:
                 labels = labels.to(device)
-                outputs = new_net(images.to(device))
+                outputs = new_net(images.to(device), True)
                 loss = criterion(outputs, labels)
                 val_loss += loss.item()
                 val_acc += (outputs.max(1)[1] == labels).sum().item()
