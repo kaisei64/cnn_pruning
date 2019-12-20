@@ -31,7 +31,7 @@ def channel_importance(conv_num):
             for param in grad_weight_multi_for_each_layer[i]:
                 grad_weight_multi_l1norm[i].append(np.sum(np.abs(param)))
             ch_high_10[i] = np.argsort(grad_weight_multi_l1norm[i])[:int(conv_list[i].out_channels / 4)]
-            ch_low_5[i] = np.argsort(grad_weight_multi_l1norm[i])[int(conv_list[i].out_channels * 19 / 20):]
+            ch_low_5[i] = np.argsort(grad_weight_multi_l1norm[i])[int(conv_list[i].out_channels * 9 / 10):]
 
     return ch_high_10[conv_num], ch_low_5[conv_num]
 
