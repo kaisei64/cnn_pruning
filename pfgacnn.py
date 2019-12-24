@@ -70,7 +70,7 @@ class PfgaCnn:
             if np.random.rand() < 0.5:
                 c1[0][ch_cross_point1], c2[0][ch_cross_point2] = c2[0][ch_cross_point2], c1[0][ch_cross_point1]
         # 二点交叉(チャネルの一部を交換)
-        for i in range(len(c1[0])):
+        # for i in range(len(c1[0])):
             # ch_cross_point1, ch_cross_point2 = random.choice(ch_seed), random.choice(ch_seed)
             # val_cross_point1, val_cross_point2 = random.choice(val_seed), random.choice(val_seed)
             # if val_cross_point1 > val_cross_point2:
