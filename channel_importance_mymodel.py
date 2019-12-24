@@ -11,7 +11,7 @@ conv_list = [module for module in net.modules() if isinstance(module, nn.Conv2d)
 # 勾配のリスト
 grad_list = list()
 for i, conv in enumerate(conv_list):
-    grad_list.append(parameter_use(f'./result/original_grad_conv{i}_mymodel.pkl'))
+    grad_list.append(parameter_use(f'./result/original_train_grad_conv{i}_mymodel.pkl'))
 
 
 def channel_importance(conv_num):
