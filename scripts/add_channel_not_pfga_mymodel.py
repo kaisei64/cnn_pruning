@@ -14,16 +14,15 @@ import numpy as np
 import random
 
 # 枝刈り前パラメータ利用
-original_net = parameter_use('./result/CIFAR10_original_train_epoch150.pkl')
+original_net = parameter_use('./result/original_train_epoch150_mymodel.pkl')
 # 枝刈り前畳み込み層のリスト
-original_conv_list = [original_net.features[i] for i in range(len(original_net.features)) if
-                      isinstance(original_net.features[i], nn.Conv2d)]
+original_conv_list = [module for module in original_net.modules() if isinstance(module, nn.Conv2d)]
 # 枝刈り後パラメータ利用
-new_net = parameter_use('./result/CIFAR10_dense_conv_prune.pkl')
-# 枝刈り後畳み込み層のリスト
-conv_list = [new_net.features[i] for i in range(len(new_net.features)) if isinstance(new_net.features[i], nn.Conv2d)]
-# 枝刈り後全結合層のリスト
-dense_list = [new_net.classifier[i] for i in range(len(new_net.classifier)) if isinstance(new_net.classifier[i], nn.Linear)]
+new_net = parameter_use('./result/dense_conv_prune_mymodel_10per.pkl')
+# 枝刈り後畳み込み層・全結合層・係数パラメータのリスト
+conv_list = [module for module in new_net.modules() if isinstance(module, nn.Conv2d)]
+dense_list = [module for module in new_net.modules() if isinstance(module, nn.Linear)]
+param_list = [module for module in new_net.modules() if isinstance(module, nn.Parameter)]
 # マスクのオブジェクト
 ch_mask = [ChannelMaskGenerator() for _ in range(len(conv_list))]
 for i, conv in enumerate(conv_list):
@@ -32,8 +31,7 @@ de_mask = [DenseMaskGenerator() for _ in range(len(dense_list))]
 for i, dense in enumerate(dense_list):
     de_mask[i].mask = np.where(np.abs(dense.weight.data.clone().cpu().detach().numpy()) == 0, 0, 1)
 
-
-add_channel_num = 3
+add_channel_num = 10
 optimizer = optim.SGD(new_net.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
 
 # 追加前重み分布の描画
@@ -69,16 +67,18 @@ for count in range(add_channel_num):
             # 追加後重み分布の描画
             after_weight = [np.sum(conv_list[i].weight.data[k].cpu().numpy()) for k
                             in range(len(conv_list[i].weight.data.cpu().numpy()))]
-            parameter_distribution_vis(f'./figure/dis_vis/conv{i + 1}/after{count + 1}_weight_distribution{i + 1}.png', after_weight)
+            parameter_distribution_vis(f'./figure/dis_vis_mymodel/conv{i + 1}/after{count + 1}_weight_distribution{i + 1}.png', after_weight)
 
             # 追加後チャネル可視化
             # for j in range(conv_list[i].out_channels):
             #     conv_vis(f'./figure/ch_vis/conv{i + 1}/after{count + 1}_conv{i + 1}_filter{j + 1}.png'
             #              , conv_list[i].weight.data.cpu().numpy(), j)
 
-    for param in new_net.features.parameters():
+    for param in new_net.parameters():
         param.requires_grad = False
-    for param in new_net.classifier.parameters():
+    for dense in dense_list:
+        dense.weight.requires_grad = True
+    for param in param_list:
         param.requires_grad = True
     f_num_epochs = 1
     # finetune
@@ -95,6 +95,9 @@ for count in range(add_channel_num):
             train_acc += (outputs.max(1)[1] == labels).sum().item()
             loss.backward()
             optimizer.step()
+            for param in param_list:
+                param_max, param_min = torch.max(param), torch.min(param)
+                param = 2 * (param - param_min) / (param_max - param_min)
             with torch.no_grad():
                 for j, dense in enumerate(dense_list):
                     if de_mask[j].mask is None:
@@ -120,4 +123,4 @@ for count in range(add_channel_num):
         print()
 
         # パラメータの保存
-        parameter_save('./result/CIFAR10_dense_conv_prune.pkl', new_net)
+        parameter_save('./result/dense_conv_prune_mymodel_10per.pkl', new_net)
