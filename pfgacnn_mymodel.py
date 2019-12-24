@@ -2,7 +2,7 @@ import torch.nn as nn
 import numpy as np
 import copy
 import random
-from channel_importance import channel_importance
+from channel_importance_mymodel import channel_importance
 from result_save_visualization import *
 
 # パラメータ利用
