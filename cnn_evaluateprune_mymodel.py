@@ -2,7 +2,7 @@ from channel_mask_generator import ChannelMaskGenerator
 # from dense_mask_generator import DenseMaskGenerator
 from dataset import *
 from result_save_visualization import *
-from channel_importance import channel_euclidean_distance, cos_sim
+from channel_importance_mymodel import channel_euclidean_distance, cos_sim
 import torch
 import numpy as np
 # import torch.optim as optim
@@ -123,5 +123,5 @@ class CnnEvaluatePrune:
             input_data = [g_count, epoch + 1, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
             result_save('./result/add_channels_not_train_mymodel.csv', data_dict, input_data)
 
-        # return 10000 * eva + similarity
-        return eva
+        return 10000 * eva + similarity
+        # return eva
