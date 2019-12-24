@@ -26,7 +26,7 @@ optimizer = optim.SGD(new_net.parameters(), lr=0.01, momentum=0.9, weight_decay=
 
 # マスクのオブジェクト
 de_mask = [DenseMaskGenerator() for _ in dense_list]
-inv_prune_ratio = 5
+inv_prune_ratio = 10
 
 # weight_pruning
 for count in range(1, inv_prune_ratio + 10):
@@ -49,8 +49,8 @@ for count in range(1, inv_prune_ratio + 10):
     threshold = \
         [weight_vector[i][int(dense_list[i].in_features * dense_list[i].out_features / inv_prune_ratio * count) - 1]
          for i in range(dense_count)] if count <= 9 else \
-            [weight_vector[i][int(dense_list[i].in_features * dense_list[i].out_features(
-                9 / inv_prune_ratio + (count - 1) / inv_prune_ratio ** 2)) - 1]
+            [weight_vector[i][int(dense_list[i].in_features * dense_list[i].out_features * (
+                9 / inv_prune_ratio + (count - 1) / (inv_prune_ratio ** 2))) - 1]
              for i in range(dense_count)]
 
     # 枝刈り本体
@@ -79,7 +79,7 @@ for count in range(1, inv_prune_ratio + 10):
     if count >= 9:
         for param in new_net.parameters():
             before_param.append(param)
-    f_num_epochs = 10
+    f_num_epochs = 1
     # finetune
     start = time.time()
     for epoch in range(f_num_epochs):

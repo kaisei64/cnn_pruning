@@ -26,7 +26,7 @@ optimizer = optim.SGD(new_net.parameters(), lr=0.01, momentum=0.9, weight_decay=
 
 # マスクのオブジェクト
 ch_mask = [ChannelMaskGenerator() for _ in range(conv_count)]
-inv_prune_ratio = 50
+inv_prune_ratio = 10
 
 # channel_pruning
 for count in range(1, inv_prune_ratio):
@@ -42,7 +42,9 @@ for count in range(1, inv_prune_ratio):
     # 枝刈り本体
     with torch.no_grad():
         for i in range(len(conv_list)):
-            threshold = channel_l1norm_for_each_layer[i][int(conv_list[i].out_channels / inv_prune_ratio * count) - 1]
+            threshold = channel_l1norm_for_each_layer[i][int(conv_list[i].out_channels / inv_prune_ratio * count) - 1]\
+                if count <= 9 else channel_l1norm_for_each_layer[i][int(conv_list[i].out_channels *
+                                                        (9 / inv_prune_ratio + (count - 1) / inv_prune_ratio ** 2)) - 1]
             save_mask = ch_mask[i].generate_mask(conv_list[i].weight.data.clone(),
                                                  None if i == 0 else conv_list[i - 1].weight.data.clone(), threshold)
             conv_list[i].weight.data *= torch.tensor(save_mask, device=device, dtype=dtype)
@@ -59,6 +61,11 @@ for count in range(1, inv_prune_ratio):
     for i in range(conv_count):
         print(f'channel_number{i + 1}: {channel_num_new[i]}', end=", " if i != conv_count - 1 else "\n")
 
+    accuracy = 0
+    before_param = list()
+    if count >= 9:
+        for param in new_net.parameters():
+            before_param.append(param)
     f_num_epochs = 5
     # finetune
     start = time.time()
@@ -92,6 +99,7 @@ for count in range(1, inv_prune_ratio):
                 val_acc += (outputs.max(1)[1] == labels).sum().item()
         avg_val_loss, avg_val_acc = val_loss / len(test_loader.dataset), val_acc / len(test_loader.dataset)
         process_time = time.time() - start
+        accuracy = avg_train_acc
 
         print(f'epoch [{epoch + 1}/{f_num_epochs}], time: {process_time:.4f}, train_loss: {avg_train_loss:.4f}'
               f', train_acc: {avg_train_acc:.4f}, 'f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
@@ -99,6 +107,11 @@ for count in range(1, inv_prune_ratio):
         # 結果の保存
         input_data = [epoch + 1, process_time, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
         result_save('./result/dense_conv_prune_parameter_mymodel.csv', data_dict, input_data)
+
+        if accuracy < 0.4:
+            for i, beparam in enumerate(before_param):
+                new_net.parameters()[i] = beparam
+            break
 
 # パラメータの保存
 parameter_save('./result/dense_conv_prune_mymodel.pkl', new_net)
