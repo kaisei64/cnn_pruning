@@ -62,11 +62,9 @@ for count in range(1, inv_prune_ratio):
         print(f'channel_number{i + 1}: {channel_num_new[i]}', end=", " if i != conv_count - 1 else "\n")
 
     accuracy = 0
-    before_param = list()
     if count >= 9:
-        for param in new_net.parameters():
-            before_param.append(param)
-    f_num_epochs = 5
+        parameter_save('./result/middle_dense_prune_mymodel.pkl', new_net)
+    f_num_epochs = 1
     # finetune
     start = time.time()
     for epoch in range(f_num_epochs):
@@ -109,8 +107,7 @@ for count in range(1, inv_prune_ratio):
         result_save('./result/dense_conv_prune_parameter_mymodel.csv', data_dict, input_data)
 
         if accuracy < 0.4:
-            for i, beparam in enumerate(before_param):
-                new_net.parameters()[i] = beparam
+            new_net = parameter_use('./result/middle_dense_prune_mymodel.pkl')
             break
 
 # パラメータの保存

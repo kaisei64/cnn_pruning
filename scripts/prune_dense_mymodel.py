@@ -29,7 +29,7 @@ de_mask = [DenseMaskGenerator() for _ in dense_list]
 inv_prune_ratio = 10
 
 # weight_pruning
-for count in range(1, inv_prune_ratio + 10):
+for count in range(1, inv_prune_ratio + 9):
     print(f'\nweight pruning: {count}')
     # 全結合層を可視化
     # if count == 1 or count == 10 or count == 18:
@@ -50,7 +50,7 @@ for count in range(1, inv_prune_ratio + 10):
         [weight_vector[i][int(dense_list[i].in_features * dense_list[i].out_features / inv_prune_ratio * count) - 1]
          for i in range(dense_count)] if count <= 9 else \
             [weight_vector[i][int(dense_list[i].in_features * dense_list[i].out_features * (
-                9 / inv_prune_ratio + (count - 1) / (inv_prune_ratio ** 2))) - 1]
+                9 / inv_prune_ratio + (count - 9) / (inv_prune_ratio ** 2))) - 1]
              for i in range(dense_count)]
 
     # 枝刈り本体
@@ -75,11 +75,9 @@ for count in range(1, inv_prune_ratio + 10):
               end=", " if i != dense_count - 1 else "\n" if i != dense_count - 1 else "\n")
 
     accuracy = 0
-    before_param = list()
     if count >= 9:
-        for param in new_net.parameters():
-            before_param.append(param)
-    f_num_epochs = 1
+        new_net = parameter_use('./result/middle_dense_prune_mymodel.pkl')
+    f_num_epochs = 5
     # finetune
     start = time.time()
     for epoch in range(f_num_epochs):
@@ -121,9 +119,8 @@ for count in range(1, inv_prune_ratio + 10):
         input_data = [epoch + 1, process_time, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
         result_save('./result/de_prune_parameter_mymodel.csv', data_dict, input_data)
 
-    if accuracy < 0.4:
-        for i, beparam in enumerate(before_param):
-            new_net.parameters()[i] = beparam
+    if accuracy < 0.85:
+        new_net = parameter_use('./result/middle_dense_prune_mymodel.pkl')
         break
 
 # パラメータの保存
