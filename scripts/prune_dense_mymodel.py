@@ -26,10 +26,10 @@ optimizer = optim.SGD(new_net.parameters(), lr=0.01, momentum=0.9, weight_decay=
 
 # マスクのオブジェクト
 de_mask = [DenseMaskGenerator() for _ in dense_list]
-inv_prune_ratio = 50
+inv_prune_ratio = 5
 
 # weight_pruning
-for count in range(1, inv_prune_ratio):
+for count in range(1, inv_prune_ratio + 10):
     print(f'\nweight pruning: {count}')
     # 全結合層を可視化
     # if count == 1 or count == 10 or count == 18:
@@ -46,8 +46,12 @@ for count in range(1, inv_prune_ratio):
         weight_vector[i].sort()
 
     # 刈る基準の閾値を格納
-    threshold = [weight_vector[i][int(dense_list[i].in_features * dense_list[i].out_features / inv_prune_ratio * count) - 1]
-                 for i in range(dense_count)]
+    threshold = \
+        [weight_vector[i][int(dense_list[i].in_features * dense_list[i].out_features / inv_prune_ratio * count) - 1]
+         for i in range(dense_count)] if count <= 9 else \
+            [weight_vector[i][int(dense_list[i].in_features * dense_list[i].out_features(
+                9 / inv_prune_ratio + (count - 1) / inv_prune_ratio ** 2)) - 1]
+             for i in range(dense_count)]
 
     # 枝刈り本体
     with torch.no_grad():
@@ -60,13 +64,21 @@ for count in range(1, inv_prune_ratio):
                     for dense in dense_list]
 
     # 枝刈り後のニューロン数
-    neuron_num_new = [dense_list[i].in_features - de_mask[i].neuron_number(torch.t(dense.weight)) for i, dense in enumerate(dense_list)]
+    neuron_num_new = [dense_list[i].in_features - de_mask[i].neuron_number(torch.t(dense.weight)) for i, dense in
+                      enumerate(dense_list)]
 
     for i in range(len(dense_list)):
-        print(f'dense{i+1}_param: {weight_ratio[i]:.4f}', end=", " if i != dense_count - 1 else "\n"if i != dense_count - 1 else "\n")
+        print(f'dense{i + 1}_param: {weight_ratio[i]:.4f}',
+              end=", " if i != dense_count - 1 else "\n" if i != dense_count - 1 else "\n")
     for i in range(len(dense_list)):
-        print(f'neuron_number{i+1}: {neuron_num_new[i]}', end=", " if i != dense_count - 1 else "\n"if i != dense_count - 1 else "\n")
+        print(f'neuron_number{i + 1}: {neuron_num_new[i]}',
+              end=", " if i != dense_count - 1 else "\n" if i != dense_count - 1 else "\n")
 
+    accuracy = 0
+    before_param = list()
+    if count >= 9:
+        for param in new_net.parameters():
+            before_param.append(param)
     f_num_epochs = 10
     # finetune
     start = time.time()
@@ -100,6 +112,7 @@ for count in range(1, inv_prune_ratio):
                 val_acc += (outputs.max(1)[1] == labels).sum().item()
         avg_val_loss, avg_val_acc = val_loss / len(test_loader.dataset), val_acc / len(test_loader.dataset)
         process_time = time.time() - start
+        accuracy = avg_train_acc
 
         print(f'epoch [{epoch + 1}/{f_num_epochs}], train_loss: {avg_train_loss:.4f}, train_acc: {avg_train_acc:.4f}, '
               f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
@@ -107,6 +120,11 @@ for count in range(1, inv_prune_ratio):
         # 結果の保存
         input_data = [epoch + 1, process_time, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
         result_save('./result/de_prune_parameter_mymodel.csv', data_dict, input_data)
+
+    if accuracy < 0.4:
+        for i, beparam in enumerate(before_param):
+            new_net.parameters()[i] = beparam
+        break
 
 # パラメータの保存
 parameter_save('./result/dense_prune_mymodel.pkl', new_net)
