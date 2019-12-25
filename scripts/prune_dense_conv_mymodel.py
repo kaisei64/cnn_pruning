@@ -105,7 +105,7 @@ for count in range(1, inv_prune_ratio):
         input_data = [epoch + 1, process_time, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
         result_save('./result/dense_conv_prune_parameter_mymodel.csv', data_dict, input_data)
 
-    if accuracy < 0.6:
+    if accuracy < 0.2:
         new_net = parameter_use('./result/middle_dense_prune_mymodel.pkl')
         break
 

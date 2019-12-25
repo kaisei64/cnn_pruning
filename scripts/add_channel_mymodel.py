@@ -1,6 +1,5 @@
 import os
 import sys
-
 pardir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(pardir)
 from channel_mask_generator import ChannelMaskGenerator
@@ -19,7 +18,7 @@ original_net = parameter_use('./result/original_train_epoch150_mymodel.pkl')
 # 枝刈り前畳み込み層のリスト
 original_conv_list = [module for module in original_net.modules() if isinstance(module, nn.Conv2d)]
 # 枝刈り後パラメータ利用
-new_net = parameter_use('./result/dense_conv_prune_mymodel.pkl')
+new_net = parameter_use('./result/dense_conv_prune_mymodel_60per.pkl')
 # 枝刈り後畳み込み層・全結合層・係数パラメータのリスト
 conv_list = [module for module in new_net.modules() if isinstance(module, nn.Conv2d)]
 dense_list = [module for module in new_net.modules() if isinstance(module, nn.Linear)]
@@ -80,7 +79,7 @@ for count in range(add_channel_num):
             #              , conv_list[i].weight.data.cpu().numpy(), j)
 
         # パラメータの保存
-        parameter_save('./result/dense_conv_prune_mymodel.pkl', new_net)
+        parameter_save('./result/dense_conv_prune_mymodel_60per.pkl', new_net)
 
     for param in new_net.parameters():
         param.requires_grad = False
@@ -104,9 +103,11 @@ for count in range(add_channel_num):
             loss.backward()
             optimizer.step()
             for param in param_list:
-                param_max = torch.max(param)
-                param_min = torch.min(param)
+                param_max, param_min = torch.max(param), torch.min(param)
                 param = 2 * (param - param_min) / (param_max - param_min)
+                # print(param)
+                # print(torch.max(param))
+                # print(torch.min(param))
             with torch.no_grad():
                 for j, dense in enumerate(dense_list):
                     if de_mask[j].mask is None:
@@ -131,4 +132,4 @@ for count in range(add_channel_num):
         print()
 
         # パラメータの保存
-        parameter_save('./result/dense_conv_prune_mymodel.pkl', new_net)
+        parameter_save('./result/dense_conv_prune_mymodel_60per.pkl', new_net)
