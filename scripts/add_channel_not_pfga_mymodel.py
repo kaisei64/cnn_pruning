@@ -89,7 +89,7 @@ for count in range(add_channel_num):
         for i, (images, labels) in enumerate(train_loader):
             images, labels = images.to(device), labels.to(device)
             optimizer.zero_grad()
-            outputs = new_net(images)
+            outputs = new_net(images, True)
             loss = criterion(outputs, labels)
             train_loss += loss.item()
             train_acc += (outputs.max(1)[1] == labels).sum().item()
@@ -111,7 +111,7 @@ for count in range(add_channel_num):
         with torch.no_grad():
             for images, labels in test_loader:
                 labels = labels.to(device)
-                outputs = new_net(images.to(device))
+                outputs = new_net(images.to(device), True)
                 loss = criterion(outputs, labels)
                 val_loss += loss.item()
                 val_acc += (outputs.max(1)[1] == labels).sum().item()
