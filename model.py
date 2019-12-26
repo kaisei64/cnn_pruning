@@ -1,7 +1,7 @@
 # import torch
 # import torch.nn as nn
 from dataset import *
-# import torch.nn.functional as F
+import torch.nn.functional as F
 
 
 # class Conv2d(nn.Conv2d):
@@ -80,6 +80,11 @@ class AlexNet(nn.Module):
         conv3_coef = self.conv3_coef.unsqueeze(0).unsqueeze(2).unsqueeze(3)
         conv4_coef = self.conv4_coef.unsqueeze(0).unsqueeze(2).unsqueeze(3)
         conv5_coef = self.conv5_coef.unsqueeze(0).unsqueeze(2).unsqueeze(3)
+        # conv1_coef = F.softmax(self.conv1_coef).unsqueeze(0).unsqueeze(2).unsqueeze(3)
+        # conv2_coef = F.softmax(self.conv2_coef).unsqueeze(0).unsqueeze(2).unsqueeze(3)
+        # conv3_coef = F.softmax(self.conv3_coef).unsqueeze(0).unsqueeze(2).unsqueeze(3)
+        # conv4_coef = F.softmax(self.conv4_coef).unsqueeze(0).unsqueeze(2).unsqueeze(3)
+        # conv5_coef = F.softmax(self.conv5_coef).unsqueeze(0).unsqueeze(2).unsqueeze(3)
         x = self.pool(self.activation(self.conv1(x) * conv1_coef)) if flag is True \
             else self.pool(self.activation(self.conv1(x)))
         x = self.pool(self.activation(self.conv2(x) * conv2_coef)) if flag is True \
