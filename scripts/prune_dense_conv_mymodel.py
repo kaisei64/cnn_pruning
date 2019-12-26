@@ -96,7 +96,7 @@ for count in range(1, inv_prune_ratio):
                 val_acc += (outputs.max(1)[1] == labels).sum().item()
         avg_val_loss, avg_val_acc = val_loss / len(test_loader.dataset), val_acc / len(test_loader.dataset)
         process_time = time.time() - start
-        accuracy = avg_train_acc
+        accuracy = avg_val_acc
 
         print(f'epoch [{epoch + 1}/{f_num_epochs}], time: {process_time:.4f}, train_loss: {avg_train_loss:.4f}'
               f', train_acc: {avg_train_acc:.4f}, 'f'val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
@@ -105,7 +105,7 @@ for count in range(1, inv_prune_ratio):
         input_data = [epoch + 1, process_time, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
         result_save('./result/dense_conv_prune_parameter_mymodel.csv', data_dict, input_data)
 
-    if accuracy < 0.2:
+    if accuracy < 0.6:
         new_net = parameter_use('./result/middle_dense_prune_mymodel.pkl')
         break
 
