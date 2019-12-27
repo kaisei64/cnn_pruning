@@ -31,6 +31,7 @@ inv_prune_ratio = 10
 # channel_pruning
 for count in range(1, inv_prune_ratio):
     print(f'\nchannel pruning: {count}')
+    parameter_save('./result/middle_dense_prune_mymodel.pkl', new_net)
     # ノルムの合計を保持
     channel_l1norm_for_each_layer = [list() for _ in range(conv_count)]
 
@@ -62,7 +63,6 @@ for count in range(1, inv_prune_ratio):
         print(f'channel_number{i + 1}: {channel_num_new[i]}', end=", " if i != conv_count - 1 else "\n")
 
     accuracy = 0
-    parameter_save('./result/middle_dense_prune_mymodel.pkl', new_net)
     f_num_epochs = 5
     # finetune
     start = time.time()
