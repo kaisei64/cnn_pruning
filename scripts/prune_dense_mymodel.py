@@ -76,7 +76,7 @@ for count in range(1, inv_prune_ratio + 9):
 
     accuracy = 0
     if count >= 9:
-        parameter_save('./result/middle_dense_prune_mymodel.pkl', new_net)
+        parameter_save('./result/middle_prune_mymodel.pkl', new_net)
     f_num_epochs = 5
     # finetune
     start = time.time()
@@ -120,7 +120,7 @@ for count in range(1, inv_prune_ratio + 9):
         result_save('./result/de_prune_parameter_mymodel.csv', data_dict, input_data)
 
     if accuracy < 0.85 or count == 15:
-        new_net = parameter_use('./result/middle_dense_prune_mymodel.pkl')
+        new_net = parameter_use('./result/middle_prune_mymodel.pkl')
         break
 
 # パラメータの保存

@@ -31,7 +31,7 @@ inv_prune_ratio = 10
 # channel_pruning
 for count in range(1, inv_prune_ratio):
     print(f'\nchannel pruning: {count}')
-    parameter_save('./result/middle_dense_prune_mymodel.pkl', new_net)
+    parameter_save('./result/middle_prune_mymodel.pkl', new_net)
     # ノルムの合計を保持
     channel_l1norm_for_each_layer = [list() for _ in range(conv_count)]
 
@@ -106,7 +106,7 @@ for count in range(1, inv_prune_ratio):
         result_save('./result/dense_conv_prune_parameter_mymodel.csv', data_dict, input_data)
 
     if accuracy < 0.18:
-        new_net = parameter_use('./result/middle_dense_prune_mymodel.pkl')
+        new_net = parameter_use('./result/middle_prune_mymodel.pkl')
         break
 
 # パラメータの保存
