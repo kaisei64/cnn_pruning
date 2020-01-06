@@ -29,6 +29,7 @@ class PfgaCnn:
         # a_max = np.max(a)
         # a_min = np.min(a)
         # y = 2 * (a - a_min) / (a_max - a_min) - 1
+        # new_gene.append(y)
         # チャネル重要度が上位10%の個体を初期個体にする
         ch_high, ch_low = channel_importance(self.conv_num)
         # 選択されるチャネルのindex
