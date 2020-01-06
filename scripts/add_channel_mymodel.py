@@ -13,6 +13,7 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 
+data_dict = {'val_loss': [], 'val_acc': []}
 # 枝刈り前パラメータ利用
 original_net = parameter_use('./result/original_train_epoch150_mymodel.pkl')
 # 枝刈り前畳み込み層のリスト
@@ -48,8 +49,8 @@ for count in range(add_channel_num):
                   evaluate_func=ev[i].evaluate, better_high=False, mutate_rate=0.1) for i, conv in enumerate(conv_list)]
     best = [list() for _ in range(len(ga))]
     for i in range(len(ga)):
-        if i == 0 and count % 6 != 0 or i == 1 and count % 2 != 0 or i == 3 and count % 4 != 0 or i == 4 and count % 4 != 0:
-            continue
+        # if i == 0 and count % 6 != 0 or i == 1 and count % 2 != 0 or i == 3 and count % 4 != 0 or i == 4 and count % 4 != 0:
+        #     continue
         while ga[i].generation_num < gen_num:
             ga[i].next_generation()
             best[i] = ga[i].best_gene()
@@ -131,5 +132,8 @@ for count in range(add_channel_num):
               f', train_acc: {avg_train_acc:.4f}, val_loss: {avg_val_loss:.4f}, val_acc: {avg_val_acc:.4f}')
         print()
 
+        # 結果の保存
+        input_data = [avg_val_loss, avg_val_acc]
+        result_save('./result/result_add_channels_retrain.csv', data_dict, input_data)
         # パラメータの保存
         parameter_save('./result/dense_conv_prune_mymodel_60per.pkl', new_net)
