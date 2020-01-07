@@ -119,9 +119,9 @@ for count in range(1, inv_prune_ratio + 9):
         input_data = [epoch + 1, process_time, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
         result_save('./result/de_prune_parameter_mymodel.csv', data_dict, input_data)
 
-    if accuracy < 0.85 or count == 15:
+    if accuracy < 0.85:
         new_net = parameter_use('./result/middle_prune_mymodel.pkl')
         break
 
 # パラメータの保存
-parameter_save('./result/dense_prune_mymodel_95per.pkl', new_net)
+parameter_save('./result/dense_prune_mymodel_90per.pkl', new_net)
