@@ -14,7 +14,7 @@ import time
 data_dict = {'epoch': [], 'time': [], 'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
 
 # パラメータ利用, 全結合パラメータの凍結
-new_net = parameter_use('./result/dense_prune_mymodel.pkl')
+new_net = parameter_use('./result/dense_prune_mymodel_95per.pkl')
 # 全結合層、畳み込み層のリスト
 dense_list = [module for module in new_net.modules() if isinstance(module, nn.Linear)]
 conv_list = [module for module in new_net.modules() if isinstance(module, nn.Conv2d)]
@@ -29,7 +29,7 @@ ch_mask = [ChannelMaskGenerator() for _ in range(conv_count)]
 inv_prune_ratio = 10
 
 # channel_pruning
-for count in range(1, inv_prune_ratio):
+for count in range(1, inv_prune_ratio + 9):
     print(f'\nchannel pruning: {count}')
     parameter_save('./result/middle_prune_mymodel.pkl', new_net)
     # ノルムの合計を保持
@@ -45,7 +45,7 @@ for count in range(1, inv_prune_ratio):
         for i in range(len(conv_list)):
             threshold = channel_l1norm_for_each_layer[i][int(conv_list[i].out_channels / inv_prune_ratio * count) - 1]\
                 if count <= 9 else channel_l1norm_for_each_layer[i][int(conv_list[i].out_channels *
-                                                        (9 / inv_prune_ratio + (count - 1) / inv_prune_ratio ** 2)) - 1]
+                                                        (9 / inv_prune_ratio + (count - 9) / inv_prune_ratio ** 2)) - 1]
             save_mask = ch_mask[i].generate_mask(conv_list[i].weight.data.clone(),
                                                  None if i == 0 else conv_list[i - 1].weight.data.clone(), threshold)
             conv_list[i].weight.data *= torch.tensor(save_mask, device=device, dtype=dtype)
@@ -105,10 +105,10 @@ for count in range(1, inv_prune_ratio):
         input_data = [epoch + 1, process_time, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
         result_save('./result/dense_conv_prune_parameter_mymodel.csv', data_dict, input_data)
 
-    if accuracy < 0.18:
-        new_net = parameter_use('./result/middle_prune_mymodel.pkl')
+    if accuracy < 0.11:
+        # new_net = parameter_use('./result/middle_prune_mymodel.pkl')
         break
 
 # パラメータの保存
-parameter_save('./result/dense_conv_prune_mymodel.pkl', new_net)
-parameter_save('./result/dense_conv_prune_mymodel_copy.pkl', new_net)
+parameter_save('./result/dense_conv_prune_mymodel_dense95per.pkl', new_net)
+parameter_save('./result/dense_conv_prune_mymodel_dense95per_copy.pkl', new_net)
