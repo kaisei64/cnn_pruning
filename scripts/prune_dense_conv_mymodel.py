@@ -103,12 +103,22 @@ for count in range(1, inv_prune_ratio + 9):
 
         # 結果の保存
         input_data = [epoch + 1, process_time, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
-        result_save('./result/dense_conv_prune_parameter_mymodel.csv', data_dict, input_data)
+        result_save('./result/dense_conv_prune_parameter_mymodel_dense95per.csv', data_dict, input_data)
 
-    if accuracy < 0.11:
-        # new_net = parameter_use('./result/middle_prune_mymodel.pkl')
+    # パラメータの保存
+    if accuracy < 0.56:
+        new_net_save = parameter_use('./result/middle_prune_mymodel.pkl')
+        parameter_save('./result/dense_conv_prune_mymodel_dense95per_60per.pkl', new_net_save)
+        parameter_save('./result/dense_conv_prune_mymodel_dense95per_60per_copy.pkl', new_net_save)
+    elif accuracy < 0.36:
+        new_net_save = parameter_use('./result/middle_prune_mymodel.pkl')
+        parameter_save('./result/dense_conv_prune_mymodel_dense95per_40per.pkl', new_net_save)
+        parameter_save('./result/dense_conv_prune_mymodel_dense95per_40per_copy.pkl', new_net_save)
+    elif accuracy < 0.16:
+        new_net_save = parameter_use('./result/middle_prune_mymodel.pkl')
+        parameter_save('./result/dense_conv_prune_mymodel_dense95per_20per.pkl', new_net_save)
+        parameter_save('./result/dense_conv_prune_mymodel_dense95per_20per_copy.pkl', new_net_save)
+    elif accuracy < 0.11:
+        parameter_save('./result/dense_conv_prune_mymodel_dense95per_10per.pkl', new_net)
+        parameter_save('./result/dense_conv_prune_mymodel_dense95per_10per_copy.pkl', new_net)
         break
-
-# パラメータの保存
-parameter_save('./result/dense_conv_prune_mymodel_dense95per.pkl', new_net)
-parameter_save('./result/dense_conv_prune_mymodel_dense95per_copy.pkl', new_net)
