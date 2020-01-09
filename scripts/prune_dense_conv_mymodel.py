@@ -14,7 +14,7 @@ import time
 data_dict = {'epoch': [], 'time': [], 'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
 
 # パラメータ利用, 全結合パラメータの凍結
-new_net = parameter_use('./result/dense_prune_mymodel_95per.pkl')
+new_net = parameter_use('./result/dense_prune_mymodel_90per.pkl')
 # 全結合層、畳み込み層のリスト
 dense_list = [module for module in new_net.modules() if isinstance(module, nn.Linear)]
 conv_list = [module for module in new_net.modules() if isinstance(module, nn.Conv2d)]
@@ -27,6 +27,7 @@ optimizer = optim.SGD(new_net.parameters(), lr=0.01, momentum=0.9, weight_decay=
 # マスクのオブジェクト
 ch_mask = [ChannelMaskGenerator() for _ in range(conv_count)]
 inv_prune_ratio = 10
+flag = [0 for i in range(3)]
 
 # channel_pruning
 for count in range(1, inv_prune_ratio + 9):
@@ -103,22 +104,27 @@ for count in range(1, inv_prune_ratio + 9):
 
         # 結果の保存
         input_data = [epoch + 1, process_time, avg_train_loss, avg_train_acc, avg_val_loss, avg_val_acc]
-        result_save('./result/dense_conv_prune_parameter_mymodel_dense95per.csv', data_dict, input_data)
+        result_save('./result/dense_conv_prune_parameter_mymodel_dense90per.csv', data_dict, input_data)
 
     # パラメータの保存
-    if accuracy < 0.56:
+    if accuracy < 0.56 and flag[0] != 1:
         new_net_save = parameter_use('./result/middle_prune_mymodel.pkl')
-        parameter_save('./result/dense_conv_prune_mymodel_dense95per_60per.pkl', new_net_save)
-        parameter_save('./result/dense_conv_prune_mymodel_dense95per_60per_copy.pkl', new_net_save)
-    elif accuracy < 0.36:
+        parameter_save('./result/dense_conv_prune_mymodel_dense90per_60per.pkl', new_net_save)
+        parameter_save('./result/dense_conv_prune_mymodel_dense90per_60per_copy.pkl', new_net_save)
+        flag[0] = 1
+    elif accuracy < 0.36 and flag[1] != 1:
         new_net_save = parameter_use('./result/middle_prune_mymodel.pkl')
-        parameter_save('./result/dense_conv_prune_mymodel_dense95per_40per.pkl', new_net_save)
-        parameter_save('./result/dense_conv_prune_mymodel_dense95per_40per_copy.pkl', new_net_save)
-    elif accuracy < 0.16:
+        parameter_save('./result/dense_conv_prune_mymodel_dense90per_40per.pkl', new_net_save)
+        parameter_save('./result/dense_conv_prune_mymodel_dense90per_40per_copy.pkl', new_net_save)
+        flag[1] = 1
+    elif accuracy < 0.16 and flag[2] != 1:
         new_net_save = parameter_use('./result/middle_prune_mymodel.pkl')
-        parameter_save('./result/dense_conv_prune_mymodel_dense95per_20per.pkl', new_net_save)
-        parameter_save('./result/dense_conv_prune_mymodel_dense95per_20per_copy.pkl', new_net_save)
+        parameter_save('./result/dense_conv_prune_mymodel_dense90per_20per.pkl', new_net_save)
+        parameter_save('./result/dense_conv_prune_mymodel_dense90per_20per_copy.pkl', new_net_save)
+        flag[2] = 1
     elif accuracy < 0.11:
-        parameter_save('./result/dense_conv_prune_mymodel_dense95per_10per.pkl', new_net)
-        parameter_save('./result/dense_conv_prune_mymodel_dense95per_10per_copy.pkl', new_net)
+        parameter_save('./result/dense_conv_prune_mymodel_dense90per_10per.pkl', new_net)
+        parameter_save('./result/dense_conv_prune_mymodel_dense90per_10per_copy.pkl', new_net)
         break
+    else:
+        pass
