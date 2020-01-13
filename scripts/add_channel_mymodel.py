@@ -13,13 +13,13 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 
-data_dict = {'val_loss': [], 'val_acc': []}
+data_dict = {'before_val_loss': [], 'before_val_acc': [], 'val_loss': [], 'val_acc': []}
 # 枝刈り前パラメータ利用
 original_net = parameter_use('./result/original_train_epoch150_mymodel.pkl')
 # 枝刈り前畳み込み層のリスト
 original_conv_list = [module for module in original_net.modules() if isinstance(module, nn.Conv2d)]
 # 枝刈り後パラメータ利用
-new_net = parameter_use('./result/dense_conv_prune_mymodel_dense95per_40per.pkl')
+new_net = parameter_use('./result/dense_conv_prune_mymodel_dense90per_20per.pkl')
 # 枝刈り後畳み込み層・全結合層・係数パラメータのリスト
 conv_list = [module for module in new_net.modules() if isinstance(module, nn.Conv2d)]
 dense_list = [module for module in new_net.modules() if isinstance(module, nn.Linear)]
@@ -33,7 +33,7 @@ for i, dense in enumerate(dense_list):
     de_mask[i].mask = np.where(np.abs(dense.weight.data.clone().cpu().detach().numpy()) == 0, 0, 1)
 
 gen_num = 30
-add_channel_num = 5
+add_channel_num = 3
 optimizer = optim.SGD(new_net.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
 
 # 追加前重み分布の描画
@@ -80,7 +80,7 @@ for count in range(add_channel_num):
             #              , conv_list[i].weight.data.cpu().numpy(), j)
 
         # パラメータの保存
-        parameter_save('./result/dense_conv_prune_mymodel_dense95per_40per.pkl', new_net)
+        parameter_save('./result/dense_conv_prune_mymodel_dense90per_20per.pkl', new_net)
 
     for param in new_net.parameters():
         param.requires_grad = False
@@ -150,4 +150,4 @@ for count in range(add_channel_num):
         input_data = [before_avg_val_loss, before_avg_val_acc, avg_val_loss, avg_val_acc]
         result_save('./result/result_add_channels_retrain.csv', data_dict, input_data)
         # パラメータの保存
-        parameter_save('./result/dense_conv_prune_mymodel_dense95per_40per.pkl', new_net)
+        parameter_save('./result/dense_conv_prune_mymodel_dense90per_20per.pkl', new_net)

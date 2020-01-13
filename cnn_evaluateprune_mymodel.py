@@ -25,7 +25,7 @@ class CnnEvaluatePrune:
 
     def train(self, gene, g_count, conv_num):
         # 枝刈り後パラメータ利用
-        self.network = parameter_use('./result/dense_conv_prune_mymodel_60per.pkl')
+        self.network = parameter_use('./result/dense_conv_prune_mymodel_dense90per_20per.pkl')
         # for param in self.network.classifier.parameters():
         #     param.requires_grad = False
         # optimizer = optim.SGD(self.network.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)

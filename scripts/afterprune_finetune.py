@@ -17,7 +17,7 @@ original_net = parameter_use('./result/original_train_epoch150_mymodel.pkl')
 # 枝刈り前畳み込み層のリスト
 original_conv_list = [module for module in original_net.modules() if isinstance(module, nn.Conv2d)]
 # 枝刈り後パラメータ利用
-new_net = parameter_use('./result/dense_conv_prune_mymodel_dense90per_10per.pkl')
+new_net = parameter_use('./result/dense_conv_prune_mymodel_dense90per_60per_allfinetune.pkl')
 # 枝刈り後畳み込み層・全結合層・係数パラメータのリスト
 conv_list = [module for module in new_net.modules() if isinstance(module, nn.Conv2d)]
 dense_list = [module for module in new_net.modules() if isinstance(module, nn.Linear)]
@@ -36,10 +36,8 @@ for param in new_net.parameters():
     param.requires_grad = False
 for dense in dense_list:
     dense.weight.requires_grad = True
-for param in param_list:
-    param.requires_grad = True
 
-f_num_epochs = 5
+f_num_epochs = 20
 for epoch in range(f_num_epochs):
     # train
     new_net.train()
@@ -47,15 +45,12 @@ for epoch in range(f_num_epochs):
     for _, (images, labels) in enumerate(train_loader):
         images, labels = images.to(device), labels.to(device)
         optimizer.zero_grad()
-        outputs = new_net(images, True)
+        outputs = new_net(images, False)
         loss = criterion(outputs, labels)
         train_loss += loss.item()
         train_acc += (outputs.max(1)[1] == labels).sum().item()
         loss.backward()
         optimizer.step()
-        for param in param_list:
-            param_max, param_min = torch.max(param), torch.min(param)
-            param = 2 * (param - param_min) / (param_max - param_min)
         with torch.no_grad():
             for j, dense in enumerate(dense_list):
                 if de_mask[j].mask is None:
@@ -69,7 +64,7 @@ for epoch in range(f_num_epochs):
     with torch.no_grad():
         for images, labels in test_loader:
             labels = labels.to(device)
-            outputs = new_net(images.to(device), True)
+            outputs = new_net(images.to(device), False)
             loss = criterion(outputs, labels)
             val_loss += loss.item()
             val_acc += (outputs.max(1)[1] == labels).sum().item()
@@ -81,4 +76,7 @@ for epoch in range(f_num_epochs):
 
     # 結果の保存
     input_data = [avg_val_loss, avg_val_acc]
-    result_save('./result/result_retrain.csv', data_dict, input_data)
+    result_save('./result/result_retrain_dense90per_60per_allfinetune.csv', data_dict, input_data)
+
+# パラメータの保存
+parameter_save('./result/dense_conv_prune_mymodel_dense90per_60per_allfinetune.pkl', new_net)
